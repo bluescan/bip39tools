@@ -33,7 +33,7 @@ So here it says it's a valid seed, but NOT to make the wallet available. What is
 they entered it wrong they'll know soon enough as all balances will be zero. However, not everyone is me, so the only
 conclusion is that users generating their seed for the first time must err on the side of caution. The hash must be valid. For a 24 word mnemonic sentence, a computer must be involved... calculating a SHA256 hash without one is an exercise in insanity.
 
-This leads to the question of what do to if you want your own source of randomness. This software needs those bits to
-compute the checksum. I'm toying with the idea of running it on an air-gapped Raspberry Pi. Something like that. More to come.
+This leads to the question of what to do if you want your own source of randomness. This software needs those entropy
+bits to compute the checksum. I'm toying with the idea of running it on an air-gapped Raspberry Pi. Something like that. More to come.
 
 
