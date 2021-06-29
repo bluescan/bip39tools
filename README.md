@@ -1,10 +1,40 @@
 # tacentbip39
 Generate a valid BIP-39 mnemonic using dice.
 
-This software is for generating a valid BIP-39 mnemonic of up to 24 words in cases where a user would rather
-generate their own entropy instead of relying on an unknown or otherwise opaque randomness source. This tool
-uses physical dice for the source of randomness. The dice must be Casino-quality 6-sided dice that are evenly
-balanced and have no bias.
+NOTE: THE SOFTWARE DOES NOT EXIST YET. STILL RESEARCHING.
+
+This software is for generating a valid BIP-39 mnemonic of 12, 15, 18, 21 or 24 words in cases where a user
+would rather generate their own entropy instead of relying on an unknown or otherwise opaque randomness source. This tool
+uses physical dice for the source of randomness. Depending of the number and type of dice you have, different
+methods of generating random bits are used. Note that 12 words represents 128 bits of entropy, 15 words -> 160 bits,
+18 words -> 192 bits, 21 words -> 224 bits, and 24 words -> 256 bits.
+
+* If you have one Casino-quality 6-sided die that is evenly balanced and has no bias, this tools generates a max of 2 bits
+per roll. Since a roll of 5 or 6 means you need to discard and re-roll, you can expect to perform 128 + 43 = 171 rolls to
+gernerate a 24 word mnemonic. The actual number is slightly higher (it's a limit) because even rerolls may not be successful.
+
+* If you have two Casino-quality 6-sided dice that are evenly balanced and have no bias, this tool generates a max of 5 bits
+for each roll of two dice. This is because you can treat the two rolls as a double digit base 36 number -- [0,5][0,5]. 32 is
+the next lower power of two (2^5 = 32 so 5 bits), so each double-roll generate 5 bits. Only 4 combinations of the 36 would require
+a re-roll (1 out of 9). 256 / 5 = 52. You can expect roughly 52 + 52/9 = 58 double-rolls to generate a 24 word mnemonic. Note it
+is slightly higher for the same reason as before. Further note, the software does not support 3 dice. It's too far from a lower
+power of two. Final further note, you could use one die and every two rolls generate the base-36 number. That's only 116 rolls
+so is better than option 1, but you don't get to see the immediate progression, so the one die option is being kept.
+
+* If you have a low-quality die or a suspected biased die all is not lost. An algorithm based on the 2019 paper
+"Giulio Morina and Krzysztof Latuszynski - MorLatAlg1" in the references directory can be used. The algorighm, which I'm referring
+to as MorLatAlg1, is based on a Von Neumann (1951) extractor. It is simple and provably removed any skew/bias.
+
+Algorithm 1 Fair coins from a die
+Input: black box to sample from p ∈ ∆m.
+Output: a sample from Bern(1/2).
+1: Sample X1, X2
+2: if X1 < X2 then set Y := 0
+3: else if X1 > X2 then set Y := 1
+4: else if X1 = X2 then discard X1, X2 and GOTO 1
+5: end if
+6: Output Y
+
 
 The tricky part with BIP-39 is computing a valid checksum. The last word contains some bits that are the
 checksum, and some that are part of the source entropy, so you really can't think of the checksum as 'the last word'.
