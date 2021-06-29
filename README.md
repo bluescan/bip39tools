@@ -2,12 +2,14 @@
 Generate a valid BIP-39 mnemonic using dice.
 
 NOTE: THE SOFTWARE DOES NOT EXIST YET. STILL RESEARCHING.
-
+### Introduction
 This software is for generating a valid BIP-39 mnemonic of 12, 15, 18, 21 or 24 words in cases where a user
 would rather generate their own entropy instead of relying on an unknown or otherwise opaque randomness source. This tool
-uses physical dice for the source of randomness. Depending of the number and type of dice you have, different
-methods of generating random bits are used. Note that 12 words represents 128 bits of entropy, 15 words -> 160 bits,
-18 words -> 192 bits, 21 words -> 224 bits, and 24 words -> 256 bits.
+uses physical dice for the source of randomness.
+
+### Entropy Generation
+Depending of the number and type of dice you have, different methods of generating random bits are used.
+Note that 12 words represents 128 bits of entropy, 15 words -> 160 bits, 18 words -> 192 bits, 21 words -> 224 bits, and 24 words -> 256 bits of entropy.
 
 * If you have one Casino-quality 6-sided die that is evenly balanced and has no bias, this tools generates a max of 2 bits
 per roll. Since a roll of 5 or 6 means you need to discard and re-roll, you can expect to perform 128 + 43 = 171 rolls to
@@ -22,9 +24,13 @@ power of two. Final further note, you could use one die and every two rolls gene
 so is better than option 1, but you don't get to see the immediate progression, so the one die option is being kept.
 
 * If you have a low-quality die or a suspected biased die all is not lost. An algorithm based on the 2019 paper
-"Giulio Morina and Krzysztof Latuszynski - MorLatAlg1" in the references directory can be used. The algorighm, which I'm referring
-to as MorLatAlg1, is based on a Von Neumann (1951) extractor. It is simple and provably removed any skew/bias.
+"Giulio Morina and Krzysztof Latuszynski - MorLatAlg1" in the references directory can be used. The algorithm, which I'm referring
+to as MorLatAlg1, is based on a Von Neumann (1951) extractor. It is simple and provably removes skew/bias. The price you pay
+for removing the bias is needing to roll the die more times. Each 2 rolls (of the _same_ biased die) yields only a single bit.
+With re-rolls (approx 1/6 of the time when the two rolls match) you can expect 2*(256 + (256/6)) = 597 individual rolls to
+generate a 24-word (256 bit) mnemonic.
 
+```
 Algorithm 1 Fair coins from a die
 Input: black box to sample from p ∈ ∆m.
 Output: a sample from Bern(1/2).
@@ -34,8 +40,9 @@ Output: a sample from Bern(1/2).
 4: else if X1 = X2 then discard X1, X2 and GOTO 1
 5: end if
 6: Output Y
+```
 
-
+### BIP-39 Considerations
 The tricky part with BIP-39 is computing a valid checksum. The last word contains some bits that are the
 checksum, and some that are part of the source entropy, so you really can't think of the checksum as 'the last word'.
 
@@ -63,7 +70,6 @@ So here it says it's a valid seed, but NOT to make the wallet available. What is
 they entered it wrong they'll know soon enough as all balances will be zero. However, not everyone is me, so the only
 conclusion is that users generating their seed for the first time must err on the side of caution. The hash must be valid. For a 24 word mnemonic sentence, a computer must be involved... calculating a SHA256 hash without one is an exercise in insanity.
 
+### Hardware Setup
 This leads to the question of what to do if you want your own source of randomness. This software needs those entropy
-bits to compute the checksum. I'm toying with the idea of running it on an air-gapped Raspberry Pi. Something like that. More to come.
-
-
+bits to compute the checksum. I'm toying with the idea of running it on an air-gapped Raspberry Pi. Something like that. More to fill out in this section.
