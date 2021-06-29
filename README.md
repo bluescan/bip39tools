@@ -17,16 +17,18 @@ gernerate a 24 word mnemonic. The actual number is slightly higher (it's a limit
 
 * If you have two Casino-quality 6-sided dice that are evenly balanced and have no bias, this tool generates a max of 5 bits
 for each roll of two dice. This is because you can treat the two rolls as a double digit base 36 number -- [0,5][0,5]. 32 is
-the next lower power of two (2^5 = 32 so 5 bits), so each double-roll generate 5 bits. Only 4 combinations of the 36 would require
-a re-roll (1 out of 9). 256 / 5 = 52. You can expect roughly 52 + 52/9 = 58 double-rolls to generate a 24 word mnemonic. Note it
-is slightly higher for the same reason as before. Further note, the software does not support 3 dice. It's too far from a lower
-power of two. Final further note, you could use one die and every two rolls generate the base-36 number. That's only 116 rolls
-so is better than option 1, but you don't get to see the immediate progression, so the one die option is being kept.
+the next lower power of two (2^5 = 32 so 5 bits), so each double-roll generates 5 bits. Only 4 combinations of the 36 would require
+a re-roll (1 out of 9). In terms of number of 2-die rolls to generate a 24 word mnemonic, 256 / 5 = 52. Including one level of re-rolls, you
+can expect roughly 52 + 52/9 = 58 double-rolls . It is slightly higher for the same reason as before. Note, the software does not
+support 3 dice. It's too far from the next lower power of two. You could use one die and every two rolls generate the base-36 number.
+That's only 116 rolls so is better than option 1, but you don't get to see the immediate progression after each roll, so the one die
+option is being kept.
 
-* If you have a low-quality die or a suspected biased die all is not lost. An algorithm based on the 2019 paper
-"Giulio Morina and Krzysztof Latuszynski - MorLatAlg1" in the references directory can be used. The algorithm, which I'm referring
-to as MorLatAlg1, is based on a Von Neumann (1951) extractor. It is simple and provably removes skew/bias. The price you pay
-for removing the bias is needing to roll the die more times. Each 2 rolls (of the _same_ biased die) yields only a single bit.
+* If you have a low-quality die or a suspected biased die all is not lost. Indeed, for the extremely paranoid, this 3rd method will also
+work with a good balanced die, removing any possible bias. The algorithm is based on the 2019 paper by
+"Giulio Morina and Krzysztof Latuszynski". Look in the references directory of this repo. The algorithm, which I'm referring
+to as MorLatAlg1 (Algorithm 1 in the paper), is based on a Von Neumann (1951) extractor. It is simple and provably removes skew/bias.
+The price you pay for removing the bias is needing to roll the die more times. Each 2 rolls (of the _same_ biased die) yields only a single bit.
 With re-rolls (approx 1/6 of the time when the two rolls match) you can expect 2*(256 + (256/6)) = 597 individual rolls to
 generate a 24-word (256 bit) mnemonic.
 
