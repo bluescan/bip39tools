@@ -29,8 +29,7 @@ work with a good balanced die, removing any possible bias. The algorithm is base
 "Giulio Morina and Krzysztof Latuszynski". Look in the references directory of this repo. The algorithm, which I'm referring
 to as MorLatAlg1 (Algorithm 1 in the paper), is based on a Von Neumann (1951) extractor. It is simple and provably removes skew/bias.
 The price you pay for removing the bias is needing to roll the die more times. Each 2 rolls (of the _same_ biased die) yields only a single bit.
-With re-rolls (approx 1/6 of the time when the two rolls match) you can expect 2*(256 + (256/6)) = 597 individual rolls to
-generate a 24-word (256 bit) mnemonic.
+With re-rolls approx 1/6 of the time when the two rolls match (and no, it's not 1/36 because any number can match) you can expect 2*(256 + (256/6)) = 597 individual rolls to generate a 24-word (256 bit) mnemonic.
 
 ```
 Algorithm 1 Fair coins from a die
