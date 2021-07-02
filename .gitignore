@@ -1,0 +1,32 @@
+# Every directory with the name.
+.vs/
+build*/
+
+# Specific Files.
+.vscode/settings.json
+.vscode/c_cpp_properties.json
+
+# Filetypes to ignore everywhere.
+*.log
+*.tlog
+*.obj
+*.o
+*.cpp.o
+*.cpp.o.d
+*.suo
+*.db
+*.db-shm
+*.db-wal
+*.exp
+*.iobj
+*.ipdb
+*.tags
+*.session
+*.c.o
+*.cxx.o
+*.tac
+*.zip
+*.snap
+
+# Specific filetypes that have exceptions here or in subdirs.
+*.vcxproj.user
