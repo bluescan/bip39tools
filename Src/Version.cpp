@@ -36,9 +36,10 @@ Version::Parser::Parser(const char* verStr)
 {
 	if (Parsed)
 		return;
-
+	tString vstr(verStr);
+	vstr.ExtractLeft('_');
 	tList<tStringItem> components;
-	tStd::tExplode(components, tString(verStr), '.');
+	tStd::tExplode(components, vstr, '.');
 
 	tStringItem* comp = components.First();	Major = comp->GetAsInt(10);
 	comp = comp->Next();					Minor = comp->GetAsInt(10);
