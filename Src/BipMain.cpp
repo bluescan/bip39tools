@@ -1,4 +1,5 @@
 #include "Version.cmake.h"
+#include "WordListEnglish.h"
 #include <Foundation/tBitField.h>
 #include <System/tPrint.h>
 #include <System/tFile.h>
@@ -14,15 +15,38 @@ namespace tBip
 	const char* MedthodNames[] = { "Invalid", "Simple", "Parallel", "Extractor" };
 	Method QueryUserMethod();
 
-	int QueryUserEntropyBits_Simple();
-	int QueryUserEntropyBits_Parallel();
-	int QueryUserEntropyBits_Extractor();
+	void QueryUserEntropyBits_Simple();
+	void QueryUserEntropyBits_Parallel();
+	void QueryUserEntropyBits_Extractor();
+	#ifdef GEN_WORD_LIST
+	void GenerateWordListHeader();
+	#endif
 
 	int NumMnemonicWords = 0;
-
-	int EntropyBitIndex = 255;
+	int NumEntropyBitsNeeded = 0;
+	int NumEntropyBitsGenerated = 0;
 	tbit256 Entropy;
 };
+
+
+#ifdef GEN_WORD_LIST
+void tBip::GenerateWordListHeader()
+{
+	tString words;
+	tSystem::tLoadFile(tString("WordListEnglish.txt"), words, '_');
+	words.Replace('\n', '_');
+	int num = 1;
+	tFileHandle hand = tSystem::tOpenFile("WordListEnglish.h", "wb");
+	do
+	{
+		tString word = words.ExtractLeft('_');
+		tfPrintf(hand, "\t\"%s\",\n", word.Chars());
+		tPrintf("WORD %d IS [%s]\n", num++, word.Chars());
+	}
+	while (!words.IsEmpty());
+	tSystem::tCloseFile(hand);
+}
+#endif
 
 
 bool tBip::SelfTest()
@@ -104,7 +128,7 @@ tBip::Method tBip::QueryUserMethod()
 }
 
 
-int tBip::QueryUserEntropyBits_Simple()
+void tBip::QueryUserEntropyBits_Simple()
 {
 	int roll = 0;
 	while ((roll < 1) || (roll > 4))
@@ -112,42 +136,45 @@ int tBip::QueryUserEntropyBits_Simple()
 		tPrintf("Roll die. Enter result. [1, 2, 3, 4, 5, 6]");
 		scanf("%1d", &roll);
 	}
+
+	tAssert((NumEntropyBitsNeeded - NumEntropyBitsGenerated) >= 2);
+	int bitIndex = NumEntropyBitsNeeded-NumEntropyBitsGenerated-1;
 	switch (roll)
 	{
 		case 1:				// 00
-			Entropy.SetBit(EntropyBitIndex, false); EntropyBitIndex--;
-			Entropy.SetBit(EntropyBitIndex, false); EntropyBitIndex--;
+			Entropy.SetBit(bitIndex-0, false);
+			Entropy.SetBit(bitIndex-1, false);
 			break;
 		case 2:				// 01
-			Entropy.SetBit(EntropyBitIndex, false); EntropyBitIndex--;
-			Entropy.SetBit(EntropyBitIndex, true); EntropyBitIndex--;
+			Entropy.SetBit(bitIndex-0, false);
+			Entropy.SetBit(bitIndex-1, true);
 			break;
 		case 3:				// 10
-			Entropy.SetBit(EntropyBitIndex, true); EntropyBitIndex--;
-			Entropy.SetBit(EntropyBitIndex, false); EntropyBitIndex--;
+			Entropy.SetBit(bitIndex-0, true);
+			Entropy.SetBit(bitIndex-1, false);
 			break;
 		case 4:				// 11
-			Entropy.SetBit(EntropyBitIndex, true); EntropyBitIndex--;
-			Entropy.SetBit(EntropyBitIndex, true); EntropyBitIndex--;
+			Entropy.SetBit(bitIndex-0, true);
+			Entropy.SetBit(bitIndex-1, true);
 			break;
 	}
-	tPrintf("%0256|256b\n", Entropy);
-	return 2;
+	NumEntropyBitsGenerated += 2;
+	tPrintf("%0_256|256b\n", Entropy);
 }
 
 
-int tBip::QueryUserEntropyBits_Parallel()
+void tBip::QueryUserEntropyBits_Parallel()
 {
 	//	int rolls[2];
 	//	scanf("%1d%1d", &rolls[0], &rolls[1]);
 	//	tPrintf("roll1 %d  roll2 %d\n", rolls[0], rolls[1]);
-	return 5;
+	NumEntropyBitsGenerated += 5;
 }
 
 
-int tBip::QueryUserEntropyBits_Extractor()
+void tBip::QueryUserEntropyBits_Extractor()
 {
-	return 1;
+	NumEntropyBitsGenerated += 1;	
 }
 
 
@@ -173,32 +200,47 @@ int main(int argc, char** argv)
 	if (numWords == 0)
 		return tBip::SelfTest() ? 0 : 1;
 
-	int numEntropyBitsNeeded = tBip::ComputeNumEntropyBits(numWords);
-	tPrintf("Your %d-word mnemonic seed phrase will contain %d bits of entropy.\n", numWords, numEntropyBitsNeeded);
+	tBip::NumEntropyBitsNeeded = tBip::ComputeNumEntropyBits(numWords);
+	tPrintf("Your %d-word mnemonic seed phrase will contain %d bits of entropy.\n", numWords, tBip::NumEntropyBitsNeeded);
 
 	tBip::Method method = tBip::QueryUserMethod();
 	tPrintf("The %s method will be used to generate entropy.\n", tBip::MedthodNames[ int(method) ]);
 
-	int numEntropyBitsGenerated = 0;
+	tBip::NumEntropyBitsGenerated = 0;
 	tBip::Entropy.Clear();
-	tBip::EntropyBitIndex = 255;
 
-	while (numEntropyBitsGenerated < numEntropyBitsNeeded)
+	tPrintf("First 10 words:\n");
+	for (int w = 0; w < 10; w++)
+		tPrintf("Word %d: [%s]\n", w, Bip39WordListEnglish[w]);
+
+	tPrintf("Last 10 words:\n");
+	for (int w = 2048-10; w < 2048; w++)
+		tPrintf("Word %d: [%s]\n", w, Bip39WordListEnglish[w]);
+	
+	while (tBip::NumEntropyBitsGenerated < tBip::NumEntropyBitsNeeded)
 	{
 		switch (method)
 		{
 			case tBip::Method::Simple:
-				numEntropyBitsGenerated += tBip::QueryUserEntropyBits_Simple();
+				tBip::QueryUserEntropyBits_Simple();
 				break;
 			case tBip::Method::Parallel:
-				numEntropyBitsGenerated += tBip::QueryUserEntropyBits_Parallel();
+				tBip::QueryUserEntropyBits_Parallel();
 				break;
 			case tBip::Method::Extractor:
-				numEntropyBitsGenerated += tBip::QueryUserEntropyBits_Extractor();
+				tBip::QueryUserEntropyBits_Extractor();
 				break;
 		}
-		tPrintf("You have generated %d bits of %d required.\n", numEntropyBitsGenerated, numEntropyBitsNeeded);
+		tPrintf("You have generated %d bits of %d required.\n", tBip::NumEntropyBitsGenerated, tBip::NumEntropyBitsNeeded);
 	}
+
+	// From BIP-39
+	//
+	// First, an initial entropy of ENT bits is generated. A checksum is generated by taking the first
+	// ENT / 32 bits of its SHA256 hash. This checksum is appended to the end of the initial entropy.
+	// Next, these concatenated bits are split into groups of 11 bits, each encoding a number from
+	// 0-2047, serving as an index into a wordlist. Finally, we convert these numbers into words and
+	// use the joined words as a mnemonic sentence.
 	
 	return 0;
 }
