@@ -137,7 +137,8 @@ tBip::Method tBip::QueryUserMethod()
 		"   have no bias, this tool generates a maximum of 5 bits for each roll of two\n"
 		"   dice. This is because you can treat the two rolls as a two-digit base-36\n"
 		"   number. From 36, 32 is the next lower power of two so each double-roll\n"
-		"   generates 5 bits. Expect approximately 58 double-rolls for a 24-word phrase.\n"
+		"   generates 5 bits. When rolling the 2 dice, enter the leftmost one first.\n"
+		"   Expect approximately 58 double-rolls for a 24-word phrase.\n"
 		"\n"
 		"3) Extractor\n"
 		"   If you have a low-quality die or a suspected biased die use this bias-\n"
@@ -205,10 +206,46 @@ void tBip::QueryUserEntropyBits_Simple()
 
 void tBip::QueryUserEntropyBits_Parallel()
 {
-	//	int rolls[2];
-	//	scanf("%1d%1d", &rolls[0], &rolls[1]);
-	//	tPrintf("roll1 %d  roll2 %d\n", rolls[0], rolls[1]);
-	NumEntropyBitsGenerated += 5;
+	uint32 base36 = 0;
+	do
+	{
+		int roll1 = 0;
+		do
+		{
+			tPrintf("Left die  [1, 2, 3, 4, 5, 6] :");
+			scanf("%1d", &roll1);
+		}
+		while ((roll1 < 1) || (roll1 > 6));
+
+		int roll2 = 0;
+		do
+		{
+			tPrintf("Right die [1, 2, 3, 4, 5, 6] :");
+			scanf("%1d", &roll2);
+		}
+		while ((roll2 < 1) || (roll2 > 6));
+		roll1--;
+		roll2--;
+
+		base36 = (roll1*6) + roll2;
+		tPrintf("Base36 Number: %d\n", base36);
+	}
+	while (base36 >= 32);
+
+	// Since the number of bits required may not be divisible by 5, make sure we don't go over.
+	int bitCount = NumEntropyBitsNeeded-NumEntropyBitsGenerated;
+	int bitIndex = bitCount - 1;
+
+	if (bitCount > 5) bitCount = 5;
+	for (int b = 0; b < bitCount; b++)
+	{
+		bool bit = (base36 & (1 << b)) ? true : false;
+		Entropy.SetBit(bitIndex-b, bit);
+	}
+
+	tPrintf("Generated %d bits\n", bitCount);
+	NumEntropyBitsGenerated += bitCount;
+	tPrintf("%0_256|256b\n", tBip::Entropy);
 }
 
 
@@ -241,7 +278,7 @@ void tBip::QueryUserEntropyBits_Extractor()
 	int bitIndex = NumEntropyBitsNeeded-NumEntropyBitsGenerated-1;
 	Entropy.SetBit(bitIndex-0, bit);
 
-	NumEntropyBitsGenerated += 1;	
+	NumEntropyBitsGenerated += 1;
 }
 
 
