@@ -1,7 +1,7 @@
 # tacentbip39
 Generate a valid BIP-39 mnemonic using dice.
 
-NOTE: THE SOFTWARE IS NOT FUNCTIONAL YET.
+NOTE: THE SOFTWARE IS NOT FUNCTIONAL YET. NEED ABOUT 24 HOURS AS OF 2021-07-04 (Big Endian Date)
 
 ### Introduction
 This software is for generating a valid BIP-39 mnemonic of 12, 15, 18, 21 or 24 words in cases where a user
