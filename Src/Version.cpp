@@ -46,4 +46,3 @@ Version::Parser::Parser(const char* verStr)
 	comp = comp->Next();					Revision = comp->GetAsInt(10);
 	Parsed = true;
 }
-

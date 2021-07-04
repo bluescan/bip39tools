@@ -24,9 +24,9 @@ else()
 	set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug" "Release")
 endif()
 
-# TacentBIP39 is the top level project. This include sets the version string variable.
+# bip39dice is the top level project. This include sets the version string variable.
 include("Src/Version.cmake.h")
-project(tbip VERSION "${TACENTBIP39_VERSION}" LANGUAGES C CXX)
+project(bip39dice VERSION "${BIP39DICE_VERSION}" LANGUAGES C CXX)
 message(STATUS "Status -- ProjectName ${PROJECT_NAME} ProjectVersion ${PROJECT_VERSION}")
 
 # Find Git module.

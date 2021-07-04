@@ -1,7 +1,8 @@
 # tacentbip39
 Generate a valid BIP-39 mnemonic using dice.
 
-NOTE: THE SOFTWARE DOES NOT EXIST YET. STILL RESEARCHING.
+NOTE: THE SOFTWARE IS NOT FUNCTIONAL YET.
+
 ### Introduction
 This software is for generating a valid BIP-39 mnemonic of 12, 15, 18, 21 or 24 words in cases where a user
 would rather generate their own entropy instead of relying on an unknown or otherwise opaque randomness source. This tool
@@ -27,21 +28,12 @@ option is being kept.
 * If you have a low-quality die or a suspected biased die all is not lost. Indeed, for the extremely paranoid, this 3rd method will also
 work with a good balanced die, removing any possible bias. The algorithm is based on the 2019 paper by
 "Giulio Morina and Krzysztof Latuszynski". Look in the references directory of this repo. The algorithm, which I'm referring
-to as MorLatAlg1 (Algorithm 1 in the paper), is based on a Von Neumann (1951) extractor. It is simple and provably removes skew/bias.
-The price you pay for removing the bias is needing to roll the die more times. Each 2 rolls (of the _same_ biased die) yields only a single bit.
-With re-rolls approx 1/6 of the time when the two rolls match (and no, it's not 1/36 because any number can match) you can expect 2*(256 + (256/6)) = 597 individual rolls to generate a 24-word (256 bit) mnemonic.
-
-```
-Algorithm 1 Fair coins from a die
-Input: black box to sample from p ∈ ∆m.
-Output: a sample from Bern(1/2).
-1: Sample X1, X2
-2: if X1 < X2 then set Y := 0
-3: else if X1 > X2 then set Y := 1
-4: else if X1 = X2 then discard X1, X2 and GOTO 1
-5: end if
-6: Output Y
-```
+to as 'Extractor' (Algorithm 1 in the paper), is based on a Von Neumann (1951) extractor. It is simple and provably removes skew/bias.
+Roll the same die twice. If roll 1 is less than roll 2, generate a binary 0. If roll 1 is greater, generate a 1. If equal, re-roll.
+All that is required is that the die yields all of the numbers, some of the time. The price you pay for removing the bias is rolling
+the die more times. Each 2 rolls (of the _same_ biased die) yields only a single bit. With re-rolls approx 1/6 of the time when the
+two rolls match (and no, it's not 1/36 because any number can match) you can expect 2*(256 + (256/6)) = 597 individual rolls to
+generate a 24-word (256 bit) mnemonic.
 
 ### BIP-39 Considerations
 The tricky part with BIP-39 is computing a valid checksum. The last word contains some bits that are the
@@ -62,15 +54,21 @@ I take it the 'warning' must be issued if the software encounters a mnemonic whe
 can happen if the sentence was generated outside of the software in question. If it were saying 'compute the
 checksum, and then validate it', then of course it will match, as it will be the same software that computes it both
 times, so if there were a coding mistake, say, in generating the SHA256 hash, it would go unnoticed. That leads me to
-believe the 'warning' is when an externally supplied word-phrase is being validated, but the fact that it's a 'warning' and not an outright rejection leads me to believe a sentence without a matching checksum can still be used (which would allow dice to be used without any computer involvement). Next paragraph:
+believe the 'warning' is when an externally supplied word-phrase is being validated, but the fact that it's a 'warning'
+and not an outright rejection leads me to believe a sentence without a matching checksum can still be used (which
+would allow dice to be used without any computer involvement). Next paragraph:
 
 "The described method also provides plausible deniability, because every passphrase generates a valid seed (and thus
 a deterministic wallet) but only the correct one will make the desired wallet available."
 
-So here it says it's a valid seed, but NOT to make the wallet available. What is a wallet implementer to do? I know what I'd do if someone was importing a mnemonic -- I'd ignore the checksum completely and allow the user to access their funds. If
-they entered it wrong they'll know soon enough as all balances will be zero. However, not everyone is me, so the only
-conclusion is that users generating their seed for the first time must err on the side of caution. The hash must be valid. For a 24 word mnemonic sentence, a computer must be involved... calculating a SHA256 hash without one is an exercise in insanity.
+So here it says it generates a valid seed, but NOT to make the wallet available. What is a wallet implementer to do?
+I know what I'd do if someone was importing a mnemonic -- I'd ignore the checksum completely and allow the user to
+access their funds. If they entered it wrong they'll know soon enough as all balances will be zero. However, not
+everyone is me, so the only conclusion is that users generating their mnemonic phrase for the first time must err
+on the side of caution. The hash must be valid. For a 24 word mnemonic sentence, a computer must be involved...
+calculating a SHA256 hash without one is an exercise in insanity.
 
 ### Hardware Setup
 This leads to the question of what to do if you want your own source of randomness. This software needs those entropy
-bits to compute the checksum. I'm toying with the idea of running it on an air-gapped Raspberry Pi. Something like that. More to fill out in this section.
+bits to compute the checksum. I'm toying with the idea of running it on an air-gapped Raspberry Pi Zero (non-W). Something
+like that. More to fill out in this section.

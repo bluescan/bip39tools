@@ -1,8 +1,29 @@
+// BipMain.cpp
+//
+// Generate a valid BIP-39 mnemonic phrase with dice.
+//
+// Copyright (c) 2021 Tristan Grimmer.
+// Permission to use, copy, modify, and/or distribute this software for any purpose with or without fee is hereby
+// granted, provided that the above copyright notice and this permission notice appear in all copies.
+//
+// THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE INCLUDING ALL
+// IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT,
+// INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN
+// AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
+// PERFORMANCE OF THIS SOFTWARE.
+
 #include "Version.cmake.h"
 #include "WordListEnglish.h"
 #include <Foundation/tBitField.h>
 #include <System/tPrint.h>
 #include <System/tFile.h>
+
+// This should NOT be defined when compiling. It is for testing purposes only.
+#define DEV_AUTO_GENERATE
+#ifdef DEV_AUTO_GENERATE
+#include <Math/tRandom.h>
+#include <System/tTime.h>
+#endif
 
 
 namespace tBip
@@ -18,7 +39,11 @@ namespace tBip
 	void QueryUserEntropyBits_Simple();
 	void QueryUserEntropyBits_Parallel();
 	void QueryUserEntropyBits_Extractor();
-	#ifdef GEN_WORD_LIST
+	#ifdef DEV_AUTO_GENERATE
+	void QueryUserEntropyBits_DevGen();
+	#endif
+
+	#ifdef DEV_GEN_WORDLIST
 	void GenerateWordListHeader();
 	#endif
 
@@ -29,7 +54,7 @@ namespace tBip
 };
 
 
-#ifdef GEN_WORD_LIST
+#ifdef DEV_GEN_WORDLIST
 void tBip::GenerateWordListHeader()
 {
 	tString words;
@@ -68,7 +93,7 @@ bool tBip::SelfTest()
 
 int tBip::QueryUserNumWords()
 {
-	tPrintf("How many words do you want in your mnemonic seed phrase?\n");
+	tPrintf("How many words do you want in your mnemonic phrase?\n");
 	tPrintf("Valid answers are 12, 15, 18, 21, and 24. Enter 0 for self-test.\n");
 	tPrintf("Most recovery wallets will accept 12 or 24. Press Enter after answering.\n");
 	tPrintf("[0, 12, 15, 18, 21, 24]:");
@@ -88,21 +113,31 @@ int tBip::QueryUserNumWords()
 
 tBip::Method tBip::QueryUserMethod()
 {
-	tPrintf("What method should be used to generate your seed phrase?.\n\n");
+	tPrintf("What method should be used to generate your phrase?.\n\n");
+
+	#ifdef DEV_AUTO_GENERATE
+	tPrintf
+	(
+		"0) DevAuto\n"
+		"   Do not use. For development only.\n"
+		"\n"
+	);
+	#endif
+
 	tPrintf
 	(
 		"1) Simple\n"
 	//   01234567890123456789012345678901234567890123456789012345678901234567890123456789
 		"   If you have one Casino-quality 6-sided die that is evenly balanced and has\n"
 		"   no bias, this method generates a maximum of 2 bits per roll. Rolls of 5 or 6\n"
-		"   are discarded. Expect to roll the die approx 171 times for a 24-word seed.\n"
+		"   are discarded. Expect to roll the die approx 171 times for a 24-word phrase.\n"
 		"\n"
 		"2) Parallel\n"
 		"   If you have two Casino-quality 6-sided dice that are evenly balanced and\n"
 		"   have no bias, this tool generates a maximum of 5 bits for each roll of two\n"
 		"   dice. This is because you can treat the two rolls as a two-digit base-36\n"
 		"   number. From 36, 32 is the next lower power of two so each double-roll\n"
-		"   generates 5 bits. Expect approximately 58 double-rolls for a 24-word seed.\n"
+		"   generates 5 bits. Expect approximately 58 double-rolls for a 24-word phrase.\n"
 		"\n"
 		"3) Extractor\n"
 		"   If you have a low-quality die or a suspected biased die use this bias-\n"
@@ -113,12 +148,17 @@ tBip::Method tBip::QueryUserMethod()
 		"   is generated. If equal, re-roll. You can expect approximately 597 individual\n"
 		"   rolls to generate a 24-word mnemonic.\n"
 	);
+
 	tPrintf("[1, 2, 3]:");
 	int method = 0;
 	while (1)
 	{
 		scanf("%1d", &method);
+		#ifdef DEV_AUTO_GENERATE
+		if ((method != 0) && (method != 1) && (method != 2) && (method != 3))
+		#else
 		if ((method != 1) && (method != 2) && (method != 3))
+		#endif
 			tPrintf("Invalid method %d. Try again.\n[1, 2, 3]", method);
 		else
 			break;
@@ -133,7 +173,7 @@ void tBip::QueryUserEntropyBits_Simple()
 	int roll = 0;
 	while ((roll < 1) || (roll > 4))
 	{
-		tPrintf("Roll die. Enter result. [1, 2, 3, 4, 5, 6]");
+		tPrintf("Roll die [1, 2, 3, 4, 5, 6] :");
 		scanf("%1d", &roll);
 	}
 
@@ -174,8 +214,54 @@ void tBip::QueryUserEntropyBits_Parallel()
 
 void tBip::QueryUserEntropyBits_Extractor()
 {
+	int roll1 = 0;
+	int roll2 = 0;
+
+	do 
+	{
+		do
+		{
+			tPrintf("Roll die   [1, 2, 3, 4, 5, 6] :");
+			scanf("%1d", &roll1);
+		}
+		while ((roll1 < 1) || (roll1 > 6));
+
+		do
+		{
+			tPrintf("Roll again [1, 2, 3, 4, 5, 6] :");
+			scanf("%1d", &roll2);
+		}
+		while ((roll2 < 1) || (roll2 > 6));
+	}
+	while (roll1 == roll2);
+	tAssert(roll1 != roll2);
+	bool bit = (roll1 < roll2) ? false : true;
+	// tPrintf("Generated a %s\n", bit ? "1" : "0");
+
+	int bitIndex = NumEntropyBitsNeeded-NumEntropyBitsGenerated-1;
+	Entropy.SetBit(bitIndex-0, bit);
+
 	NumEntropyBitsGenerated += 1;	
 }
+
+
+#ifdef DEV_AUTO_GENERATE
+void tBip::QueryUserEntropyBits_DevGen()
+{
+	tMath::tRandom::DefaultGenerator.SetSeed( uint64(tSystem::tGetHardwareTimerCount()) );
+	tAssert((NumEntropyBitsNeeded - NumEntropyBitsGenerated) >= 32);
+	int bitIndex = NumEntropyBitsNeeded-NumEntropyBitsGenerated-1;
+
+	uint32 randBits = tMath::tRandom::tGetBits();
+	for (int b = 0; b < 32; b++)
+	{
+		bool bit = (randBits & (1 << b)) ? true : false;
+		Entropy.SetBit(bitIndex-b, bit);
+	}
+
+	NumEntropyBitsGenerated += 32;
+}
+#endif
 
 
 int tBip::ComputeNumEntropyBits(int numWords)
@@ -194,14 +280,19 @@ int tBip::ComputeNumEntropyBits(int numWords)
 
 int main(int argc, char** argv)
 {
-	tPrintf("Bip39Version %d.%d.%d\n", Version::Major, Version::Minor, Version::Revision);
+	tPrintf("bip39dice V%d.%d.%d\n", Version::Major, Version::Minor, Version::Revision);
+
+	#ifdef DEV_GEN_WORDLIST
+	tBip::GenerateWordListHeader();
+	return 0;
+	#endif
 
 	int numWords = tBip::QueryUserNumWords();
 	if (numWords == 0)
 		return tBip::SelfTest() ? 0 : 1;
 
 	tBip::NumEntropyBitsNeeded = tBip::ComputeNumEntropyBits(numWords);
-	tPrintf("Your %d-word mnemonic seed phrase will contain %d bits of entropy.\n", numWords, tBip::NumEntropyBitsNeeded);
+	tPrintf("Your %d-word mnemonic phrase will contain %d bits of entropy.\n", numWords, tBip::NumEntropyBitsNeeded);
 
 	tBip::Method method = tBip::QueryUserMethod();
 	tPrintf("The %s method will be used to generate entropy.\n", tBip::MedthodNames[ int(method) ]);
@@ -209,6 +300,7 @@ int main(int argc, char** argv)
 	tBip::NumEntropyBitsGenerated = 0;
 	tBip::Entropy.Clear();
 
+/*
 	tPrintf("First 10 words:\n");
 	for (int w = 0; w < 10; w++)
 		tPrintf("Word %d: [%s]\n", w, Bip39WordListEnglish[w]);
@@ -216,11 +308,17 @@ int main(int argc, char** argv)
 	tPrintf("Last 10 words:\n");
 	for (int w = 2048-10; w < 2048; w++)
 		tPrintf("Word %d: [%s]\n", w, Bip39WordListEnglish[w]);
+*/
 	
 	while (tBip::NumEntropyBitsGenerated < tBip::NumEntropyBitsNeeded)
 	{
 		switch (method)
 		{
+			#ifdef DEV_AUTO_GENERATE
+			case tBip::Method::Invalid:
+				tBip::QueryUserEntropyBits_DevGen();
+				break;
+			#endif
 			case tBip::Method::Simple:
 				tBip::QueryUserEntropyBits_Simple();
 				break;
@@ -233,6 +331,8 @@ int main(int argc, char** argv)
 		}
 		tPrintf("You have generated %d bits of %d required.\n", tBip::NumEntropyBitsGenerated, tBip::NumEntropyBitsNeeded);
 	}
+
+	tPrintf("%0_256|256b\n", tBip::Entropy);
 
 	// From BIP-39
 	//

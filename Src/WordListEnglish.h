@@ -1,3 +1,4 @@
+#pragma once
 const char* Bip39WordListEnglish[] =
 {
 	"abandon",
