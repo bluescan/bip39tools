@@ -12,7 +12,7 @@
 			"name": "Launch GDB",
 			"type": "cppdbg",
 			"request": "launch",
-			"program": "${workspaceFolder}/build/bip39dice.exe",
+			"program": "${workspaceFolder}/build/bip39dice",
 			"args": [],
 			"stopAtEntry": false,
 			"cwd": "${workspaceFolder}/build",
