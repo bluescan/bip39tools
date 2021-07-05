@@ -19,28 +19,29 @@ uses physical dice for the source of randomness.
 Depending of the number and type of dice you have, different methods of generating random bits are used.
 Note that 12 words represents 128 bits of entropy, 15 words -> 160 bits, 18 words -> 192 bits, 21 words -> 224 bits, and 24 words -> 256 bits of entropy.
 
-* If you have one Casino-quality 6-sided die that is evenly balanced and has no bias, this tools generates a max of 2 bits
-per roll. Since a roll of 5 or 6 means you need to discard and re-roll, you can expect to perform 128 + 43 = 171 rolls to
-gernerate a 24 word mnemonic. The actual number is slightly higher (it's a limit) because even rerolls may not be successful.
+* ***Method 1 - Simple :*** If you have one Casino-quality 6-sided die that is evenly balanced and has no bias, this method
+generates a max of 2 bits per roll. A roll of 5 or 6 means you need to discard and re-roll. You can expect to
+perform 128 + 43 = 171 rolls to gernerate a 24-word mnemonic. The actual number is slightly higher (it's a limit) because
+even re-rolls may not be successful.
 
-* If you have two Casino-quality 6-sided dice that are evenly balanced and have no bias, this tool generates a max of 5 bits
-for each roll of two dice. This is because you can treat the two rolls as a double digit base 36 number -- [0,5][0,5]. 32 is
-the next lower power of two (2^5 = 32 so 5 bits), so each double-roll generates 5 bits. Only 4 combinations of the 36 would require
-a re-roll (1 out of 9). In terms of number of 2-die rolls to generate a 24 word mnemonic, 256 / 5 = 52. Including one level of re-rolls, you
-can expect roughly 52 + 52/9 = 58 double-rolls . It is slightly higher for the same reason as before. Note, the software does not
-support 3 dice. It's too far from the next lower power of two. You could use one die and every two rolls generate the base-36 number.
-That's only 116 rolls so is better than option 1, but you don't get to see the immediate progression after each roll, so the one die
-option is being kept.
+* ***Method 2 - Parallel :*** If you have two Casino-quality 6-sided dice that are evenly balanced and have no bias, this
+method generates a max of 5 bits for each roll of two dice. This is because you can treat the two rolls as a double-digit
+base 36 number -- [0,5][0,5]. 32 is the next lower power of two (2^5 = 32 so 5 bits), so each double-roll generates 5 bits.
+Only 4 combinations of the 36 would require a re-roll (1 out of 9). In terms of number of 2-die rolls to generate a 24 word
+mnemonic, 256 / 5 = 52. Including one level of re-rolls, you can expect roughly 52 + 52/9 = 58 double-rolls. It is slightly
+higher for the same reason as before. Note, the software does not support 3 dice. It's too far from the next lower power
+of two. You could use one die and every two rolls generate the base-36 number. That's only 116 rolls so is better than method 1,
+but you don't get to see the immediate progression after each roll, so the simpler one-die option is being kept.
 
-* If you have a low-quality die or a suspected biased die all is not lost. Indeed, for the extremely paranoid, this 3rd method will also
-work with a good balanced die, removing any possible bias. The algorithm is based on the 2019 paper by
-"Giulio Morina and Krzysztof Latuszynski". Look in the references directory of this repo. The algorithm, which I'm referring
-to as 'Extractor' (Algorithm 1 in the paper), is based on a Von Neumann (1951) extractor. It is simple and provably removes skew/bias.
-Roll the same die twice. If roll 1 is less than roll 2, generate a binary 0. If roll 1 is greater, generate a 1. If equal, re-roll.
-All that is required is that the die yields all of the numbers, some of the time. The price you pay for removing the bias is rolling
-the die more times. Each 2 rolls (of the _same_ biased die) yields only a single bit. With re-rolls approx 1/6 of the time when the
-two rolls match (and no, it's not 1/36 because any number can match) you can expect 2*(256 + (256/6)) = 597 individual rolls to
-generate a 24-word (256 bit) mnemonic.
+* ***Method 3 - Extractor :*** If you have a low-quality die or a suspected biased die all is not lost. Indeed, for the
+extremely paranoid, this 3rd method will also work with a good balanced die, removing any possible bias. The algorithm is based
+on the 2019 paper by "Giulio Morina and Krzysztof Latuszynski". Look in the references directory of this repo. The algorithm, which
+I'm referring to as 'Extractor' (Algorithm 1 in the paper), is based on a Von Neumann (1951) extractor. It is simple and provably
+removes skew/bias. Roll the same die twice. If roll 1 is less than roll 2, generate a binary 0. If roll 1 is greater, generate a 1.
+If equal, re-roll. All that is required is that the die yields all of the numbers some of the time. The price you pay for removing
+the bias is rolling the die more times. Each 2 rolls (of the _same_ biased die) yields only a single bit. With re-rolls approx 1/6 of
+the time when the two rolls match (and no, it's not 1/36 because any number can match) you can expect 2*(256 + (256/6)) = 597 individual
+rolls to generate a 24-word (256 bit) mnemonic.
 
 ### BIP-39 Considerations
 The tricky part with BIP-39 is computing a valid checksum. The last word contains some bits that are the
