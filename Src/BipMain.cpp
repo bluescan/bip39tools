@@ -18,8 +18,10 @@
 #include <System/tPrint.h>
 #include <System/tFile.h>
 
-// This should NOT be defined when compiling. It is for testing purposes only.
-#define DEV_AUTO_GENERATE
+// These two should not be defined when compiling. They are for testing/dev purposes only.
+// #define DEV_AUTO_GENERATE
+// #define DEV_GEN_WORDLIST
+
 #ifdef DEV_AUTO_GENERATE
 #include <Math/tRandom.h>
 #include <System/tTime.h>
@@ -30,7 +32,7 @@ namespace tBip
 {
 	bool SelfTest();
 	int QueryUserNumWords();
-	int ComputeNumEntropyBits(int numWords);
+	int GetNumEntropyBits(int numWords);
 
 	enum class Method { Invalid, Simple, Parallel, Extractor };
 	const char* MedthodNames[] = { "Invalid", "Simple", "Parallel", "Extractor" };
@@ -301,7 +303,7 @@ void tBip::QueryUserEntropyBits_DevGen()
 #endif
 
 
-int tBip::ComputeNumEntropyBits(int numWords)
+int tBip::GetNumEntropyBits(int numWords)
 {
 	switch (numWords)
 	{
@@ -328,7 +330,7 @@ int main(int argc, char** argv)
 	if (numWords == 0)
 		return tBip::SelfTest() ? 0 : 1;
 
-	tBip::NumEntropyBitsNeeded = tBip::ComputeNumEntropyBits(numWords);
+	tBip::NumEntropyBitsNeeded = tBip::GetNumEntropyBits(numWords);
 	tPrintf("Your %d-word mnemonic phrase will contain %d bits of entropy.\n", numWords, tBip::NumEntropyBitsNeeded);
 
 	tBip::Method method = tBip::QueryUserMethod();
@@ -337,16 +339,6 @@ int main(int argc, char** argv)
 	tBip::NumEntropyBitsGenerated = 0;
 	tBip::Entropy.Clear();
 
-/*
-	tPrintf("First 10 words:\n");
-	for (int w = 0; w < 10; w++)
-		tPrintf("Word %d: [%s]\n", w, Bip39WordListEnglish[w]);
-
-	tPrintf("Last 10 words:\n");
-	for (int w = 2048-10; w < 2048; w++)
-		tPrintf("Word %d: [%s]\n", w, Bip39WordListEnglish[w]);
-*/
-	
 	while (tBip::NumEntropyBitsGenerated < tBip::NumEntropyBitsNeeded)
 	{
 		switch (method)
@@ -370,6 +362,7 @@ int main(int argc, char** argv)
 	}
 
 	tPrintf("%0_256|256b\n", tBip::Entropy);
+	tAssert(tBip::NumEntropyBitsGenerated == tBip::NumEntropyBitsNeeded);
 
 	// From BIP-39
 	//
@@ -378,6 +371,66 @@ int main(int argc, char** argv)
 	// Next, these concatenated bits are split into groups of 11 bits, each encoding a number from
 	// 0-2047, serving as an index into a wordlist. Finally, we convert these numbers into words and
 	// use the joined words as a mnemonic sentence.
+
+	// Compute the SHA-256 hash of the entropy.
+	uint8 entropyByteArray[32];
+	int numEntropyBytes = tBip::NumEntropyBitsGenerated/8;
+	for (int b = 0; b < numEntropyBytes; b++)
+		entropyByteArray[b] = tBip::Entropy.GetByte(numEntropyBytes - b - 1);
+	tuint256 sha256 = tHash::tHashDataSHA256(entropyByteArray, numEntropyBytes);
+
+	tPrintf("The sha256 is:\n");
+	tPrintf("%0_256|256b\n", sha256);
+
+	// How many of the first bits do we need?
+	int numHashBitsNeeded = tBip::NumEntropyBitsNeeded / 32;
+	uint8 firstBits = sha256.GetByte(31);
+	firstBits >>= (8-numHashBitsNeeded);
+	//uint8 shaBitMask = 0xFF >> (8-numHashBitsNeeded);
+	//uint8 shaBits = sha256 & sha
+	tPrintf("The first %d bits of the sha are: %08b\n", numHashBitsNeeded, firstBits);
+
+	// We now need to store the entropy and the first bits of the sha in a single variable. We make one
+	// big enough for the 24-word case: 264 bits. Just for efficiency, we'll use 288, since internally
+	// the fixed int class uses 32-bit ints to store their value (and 288 is divisible by 32).
+	// Actually, we'll just use 512, as the tPrintf supports that size.
+	tuint512 entropyAndChecksum;
+	entropyAndChecksum.MakeZero();
+	for (int r = 0; r < tBip::Entropy.GetNumElements(); r++)
+		entropyAndChecksum.RawElement(r) = tBip::Entropy.GetElement(r);
+
+	entropyAndChecksum <<= numHashBitsNeeded;
+	entropyAndChecksum |= firstBits;
+	tPrintf("EntropyAndChecksum\n");
+	tPrintf("%0_512|512b\n", entropyAndChecksum);
+	// We are going to use 
+
+	// Next we make an array for our word indices. We will be filling it in backwards to
+	// avoid extra shift operations. We just shift by 11 each time.
+	int wordIndices[24];
+	for (int w = 0; w < numWords; w++)
+	{
+		int wordIndex = entropyAndChecksum & tuint512(0x000007FF);
+		tAssert((wordIndex >= 0) && (wordIndex < 2048));
+		wordIndices[w] = wordIndex;
+		entropyAndChecksum >>= 11;
+	}
+
+	// And finally we print out the words in the correct order.
+	for (int w = numWords-1; w >= 0; w--)
+	{
+		int wordIndex = wordIndices[w];
+		tPrintf("Word %02d with index %04d is: %s\n", numWords - w, wordIndex, Bip39WordListEnglish[wordIndex]);
+	}
+
+	// Before exiting let's clear the entropy variables.
+	// @todo Make sure this can't get optimized away.
+	tBip::Entropy.Clear();
+	for (int w = 0; w < numWords; w++)
+		wordIndices[w] = -1;
+	for (int b = 0; b < 32; b++)
+		entropyByteArray[b] = 0;
+	entropyAndChecksum.MakeZero();
 	
 	return 0;
 }

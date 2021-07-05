@@ -68,8 +68,10 @@ everyone is me, so the only conclusion is that users generating their mnemonic p
 on the side of caution. The hash must be valid. For a 24 word mnemonic sentence, a computer must be involved...
 calculating a SHA256 hash without one is an exercise in insanity.
 
-One final note. If a checksum is really that important, why not choose something much simpler than SHA-256. Something that you could compute easily on pen and paper (which can be burned afterward). The number of bits of the SHA-256 hash that are actually used in BIP-39 is (only) between 4 and 8 (inclusive, depending on total word count), so the fact that SHA-256 is
+If a checksum is really that important, why not choose something much simpler than SHA-256. Something that you could compute easily on pen and paper (which can be burned afterward). The number of bits of the SHA-256 hash that are actually used in BIP-39 is (only) between 4 and 8 (inclusive, depending on total word count), so the fact that SHA-256 is
 (currently) cryptographically secure is irrelevant.
+
+One final note. I have perhaps been too much of a critic. Overall BIP-39 is completely functional and reliable. The fact that so many multiples of 32 (160, 192, 224, and 256) end up being divisible by 11 after adding the multiple divided by 32 is 'pretty neat'.
 
 ### Hardware Setup
 This leads to the question of what to do if you want your own source of randomness. This software needs those entropy
