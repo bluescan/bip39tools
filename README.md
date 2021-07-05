@@ -1,7 +1,14 @@
 # tacentbip39
 Generate a valid BIP-39 mnemonic using dice.
 
-NOTE: THE SOFTWARE IS NOT FUNCTIONAL YET. NEED ABOUT 24 HOURS AS OF 2021-07-04 (Big Endian Date)
+### Status
+This software is now functional. Tested generation of 12, 15, 18, 21, and 24 word mnemonics against https://iancoleman.io/bip39/
+The outstanding issues and todo's:
+* Prints are too verbose. Add a command line flag to turn them on.
+* There is a self test, but it only tests the SHA-256 implementation. Add more sha tests (see tacent unit-tests) as well as add the
+  test vectors for BIP-39 from the Trezor site: https://github.com/trezor/python-mnemonic/blob/master/vectors.json
+* Compile on Raspberry Pi/ARM in preparation for getting it going on a Pi Zero (no W).
+* Print the roll number you are on for each method. We can see if the estimates below are correct.
 
 ### Introduction
 This software is for generating a valid BIP-39 mnemonic of 12, 15, 18, 21 or 24 words in cases where a user
