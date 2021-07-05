@@ -31,7 +31,9 @@ Only 4 combinations of the 36 would require a re-roll (1 out of 9). In terms of 
 mnemonic, 256 / 5 = 52. Including one level of re-rolls, you can expect roughly 52 + 52/9 = 58 double-rolls. It is slightly
 higher for the same reason as before. Note, the software does not support 3 dice. It's too far from the next lower power
 of two. You could use one die and every two rolls generate the base-36 number. That's only 116 rolls so is better than method 1,
-but you don't get to see the immediate progression after each roll, so the simpler one-die option is being kept.
+but you don't get to see the immediate progression after each roll, so the simpler one-die option is being kept. When rolling
+two dice at the same time, enter the leftmost die first. Be consistent, you don't want to subconsciously order them
+smaller to larger or some such.
 
 * ***Method 3 - Extractor :*** If you have a low-quality die or a suspected biased die all is not lost. Indeed, for the
 extremely paranoid, this 3rd method will also work with a good balanced die, removing any possible bias. The algorithm is based
