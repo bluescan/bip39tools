@@ -4,11 +4,12 @@ Generate a valid BIP-39 mnemonic using dice.
 ### Status
 This software is now functional. Tested generation of 12, 15, 18, 21, and 24 word mnemonics against https://iancoleman.io/bip39/
 The outstanding issues and todo's:
-* Prints are too verbose. Add a command line flag to turn them on.
+* DONE Prints are too verbose. Add a command line flag to turn them on.
 * There is a self test, but it only tests the SHA-256 implementation. Add more sha tests (see tacent unit-tests) as well as add the
   test vectors for BIP-39 from the Trezor site: https://github.com/trezor/python-mnemonic/blob/master/vectors.json
 * Compile on Raspberry Pi/ARM in preparation for getting it going on a Pi Zero (no W).
-* Print the roll number you are on for each method. We can see if the estimates below are correct.
+* DONE Print the roll number you are on for each method. We can see if the estimates below are correct.
+* Might as well support the official non-Englist word lists.
 
 ### Introduction
 This software is for generating a valid BIP-39 mnemonic of 12, 15, 18, 21 or 24 words in cases where a user
@@ -87,3 +88,15 @@ One final note. I have perhaps been too much of a critic. Overall BIP-39 is comp
 This leads to the question of what to do if you want your own source of randomness. This software needs those entropy
 bits to compute the checksum. I'm toying with the idea of running it on an air-gapped Raspberry Pi Zero (non-W). Something
 like that. More to fill out in this section.
+
+### Building
+It's a cmake C++ project. Install cmake, Visual Studio Code, and open the directory VS Code. Same instructions for Windows and Linux.
+
+### Running
+Type bip39dice from a command prompt or shell. The only command-line options are to control the amount of ouput spew:
+* ***bip39dice -c***
+  For a concise level of output.
+* ***bip39dice -n***
+  For a normal amount of output (default).
+* ***bip39dice -v***
+  For more detailed information including binary prints of the entropy and hash.
