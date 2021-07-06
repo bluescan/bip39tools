@@ -1,4 +1,4 @@
-# tacentbip39
+# bip39dice
 Generate a valid BIP-39 mnemonic using dice.
 
 ### Status
