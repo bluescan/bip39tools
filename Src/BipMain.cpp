@@ -13,7 +13,7 @@
 // PERFORMANCE OF THIS SOFTWARE.
 
 // These two should not be defined when compiling. They are for testing/dev purposes only.
-#define DEV_AUTO_GENERATE
+// #define DEV_AUTO_GENERATE
 // #define DEV_GEN_WORDLIST
 #include "Version.cmake.h"
 #include <iostream>
@@ -240,7 +240,6 @@ void tBip::QueryUserEntropyBits_Parallel()
 		{
 			tPrintf("Roll#%03d Left die  [1, 2, 3, 4, 5, 6]: ", RollCount);
 			roll1 = InputInt();
-			RollCount++;
 		}
 		while ((roll1 < 1) || (roll1 > 6));
 
@@ -249,9 +248,9 @@ void tBip::QueryUserEntropyBits_Parallel()
 		{
 			tPrintf("Roll#%03d Right die [1, 2, 3, 4, 5, 6]: ", RollCount);
 			roll2 = InputInt();
-			RollCount++;
 		}
 		while ((roll2 < 1) || (roll2 > 6));
+		RollCount++;		
 		roll1--;
 		roll2--;
 
@@ -355,7 +354,7 @@ int main(int argc, char** argv)
 		tSystem::tSetChannels(tSystem::tChannel_Systems | tBip::ChConc);
 
 	if (ConciseOutput)
-		tPrintf("bip39dice V%d.%d.%d\n", Version::Major, Version::Minor, Version::Revision);
+		tPrintf("dice2bip39 V%d.%d.%d\n", Version::Major, Version::Minor, Version::Revision);
 	else
 		tCommand::tPrintUsage(nullptr, "This program generates a valid BIP-39 passphrase using dice.", Version::Major, Version::Minor, Version::Revision);
 

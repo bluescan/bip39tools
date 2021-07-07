@@ -26,7 +26,7 @@ endif()
 
 # bip39dice is the top level project. This include sets the version string variable.
 include("Src/Version.cmake.h")
-project(bip39dice VERSION "${BIP39DICE_VERSION}" LANGUAGES C CXX)
+project(dice2bip39 VERSION "${DICE2BIP39_VERSION}" LANGUAGES C CXX)
 message(STATUS "Status -- ProjectName ${PROJECT_NAME} ProjectVersion ${PROJECT_VERSION}")
 
 # Find Git module.
