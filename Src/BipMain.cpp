@@ -344,6 +344,13 @@ int tBip::GetNumEntropyBits(int numWords)
 
 int main(int argc, char** argv)
 {
+	// Some utf-8 tests.
+	// This works so long as /utf-8 is specified in the compiler options. That flag makes source files be interpreted as utf-8 as well as compiling output string literals to utf-8.
+	//	FILE* ff = fopen("testutf8.txt", "wb");
+	//	fprintf(ff, u8"UTF8STR: 的一是在不了有\n");
+	//	fclose(ff);
+	//	return 0;
+
 	tCommand::tParse(argc, argv);
 	tSystem::tSetChannels(tSystem::tChannel_Systems | tBip::ChNorm);
 	if (VerboseOutput)
