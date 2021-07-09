@@ -32,7 +32,7 @@ tCommand::tOption NormalOutput	("Normal output.",	'n',	"normal");
 tCommand::tOption VerboseOutput	("Verbose output.",	'v',	"verbose");
 
 
-namespace tBip
+namespace Bip
 {
 	bool SelfTest();
 	int QueryUserNumWords();
@@ -65,7 +65,7 @@ namespace tBip
 };
 
 
-int tBip::InputInt()
+int Bip::InputInt()
 {
 	int val = -1;
 	char str[128];
@@ -79,7 +79,7 @@ int tBip::InputInt()
 
 
 #ifdef DEV_GEN_WORDLIST
-void tBip::GenerateWordListHeader()
+void Bip::GenerateWordListHeader()
 {
 	tString words;
 	tSystem::tLoadFile(tString("WordListEnglish.txt"), words, '_');
@@ -98,24 +98,203 @@ void tBip::GenerateWordListHeader()
 #endif
 
 
-bool tBip::SelfTest()
+namespace Test
 {
-	tPrintf("Performing Self-Test\n");
-	const char* shaMesg = "abc";
-	tuint256 shaComp = tHash::tHashStringSHA256(shaMesg);
-	tuint256 shaCorr("BA7816BF 8F01CFEA 414140DE 5DAE2223 B00361A3 96177A9C B410FF61 F20015AD", 16);
-	tPrintf
-	(
-		"Computing SHA-256 of [%s]\n"
-		"Compute %0_64|256X\n"
-		"Correct %0_64|256X\n",
-		shaMesg, shaComp, shaCorr
-	);
-	return (shaComp == shaCorr);
+	// SHA256 Test Data Sources
+	// NIST_A  : https://www.nist.gov/itl/ssd/software-quality-group/nsrl-test-data
+	// NIST_B  : https://csrc.nist.gov/CSRC/media/Projects/Cryptographic-Standards-and-Guidelines/documents/examples/SHA256.pdf
+	// NIST_C  : https://csrc.nist.gov/CSRC/media/Projects/Cryptographic-Standards-and-Guidelines/documents/examples/SHA2_Additional.pdf
+	// NIST_D  : https://csrc.nist.gov/Projects/Cryptographic-Algorithm-Validation-Program/Secure-Hashing	(FIPS 180-4 ByteTestVector)
+	// NIST_E  : https://csrc.nist.gov/Projects/Cryptographic-Algorithm-Validation-Program/Secure-Hashing	(FIPS 180-4 BitTestVector)
+
+	//
+	// SHA256 string test vectors.
+	//
+	struct SHA256StringVector { const char* Message; const char* Digest; };
+	SHA256StringVector SHA256StringVectors[] =
+	{
+		{ "", "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855" },																	// NIST_D
+		{ "abc", "BA7816BF 8F01CFEA 414140DE 5DAE2223 B00361A3 96177A9C B410FF61 F20015AD" },														// NIST_A NIST_B
+		{ "abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq", "248D6A61 D20638B8 E5C02693 0C3E6039 A33CE459 64FF2167 F6ECEDD4 19DB06C1" }	// NIST_A NIST_B
+	};
+	constexpr int NumSHA256StringVectors = sizeof(SHA256StringVectors)/sizeof(*SHA256StringVectors);
+
+	//
+	// SHA256 binary test vectors.
+	//
+	uint8 BinMsg01[]		= { 0xbd };
+	const char* BinDig01	= "68325720 aabd7c82 f30f554b 313d0570 c95accbb 7dc4b5aa e11204c0 8ffe732b";						// NIST_C Vector 1
+
+	uint8 BinMsg02[]		= { 0xc9, 0x8c, 0x8e, 0x55 };
+	const char* BinDig02	= "7abc22c0 ae5af26c e93dbb94 433a0e0b 2e119d01 4f8e7f65 bd56c61c cccd9504";						// NIST_C Vector 2
+
+	uint8 BinMsg03[]		= { 0xc2, 0x99, 0x20, 0x96, 0x82 };																	// NIST_D
+	const char* BinDig03	= "f0887fe961c9cd3beab957e8222494abb969b1ce4c6557976df8b0f6d20e9166";
+
+	uint8 BinMsg04[]		= { 0xe1, 0xdc, 0x72, 0x4d, 0x56, 0x21 };															// NIST_D
+	const char* BinDig04	= "eca0a060b489636225b4fa64d267dabbe44273067ac679f20820bddc6b6a90ac";
+
+	uint8 BinMsg05[]		= { 0x06, 0xe0, 0x76, 0xf5, 0xa4, 0x42, 0xd5 };														// NIST_D
+	const char* BinDig05	= "3fd877e27450e6bbd5d74bb82f9870c64c66e109418baa8e6bbcff355e287926";
+
+	uint8 BinMsg06[]		= { 0x57, 0x38, 0xc9, 0x29, 0xc4, 0xf4, 0xcc, 0xb6 };												// NIST_D
+	const char* BinDig06	= "963bb88f27f512777aab6c8b1a02c70ec0ad651d428f870036e1917120fb48bf";
+
+	uint8 BinMsg07[]		= { 0x33, 0x34, 0xc5, 0x80, 0x75, 0xd3, 0xf4, 0x13, 0x9e };											// NIST_D
+	const char* BinDig07	= "078da3d77ed43bd3037a433fd0341855023793f9afd08b4b08ea1e5597ceef20";
+
+	uint8 BinMsg08[]		= { 0x0a, 0x27, 0x84, 0x7c, 0xdc, 0x98, 0xbd, 0x6f, 0x62, 0x22, 0x0b, 0x04, 0x6e, 0xdd, 0x76, 0x2b };	// NIST_D
+	const char* BinDig08	= "80c25ec1600587e7f28b18b1b18e3cdc89928e39cab3bc25e4d4a4c139bcedc4";
+
+	struct SHA256BinaryVector { const uint8* Message; int NumBytes; const char* Digest; };
+	SHA256BinaryVector SHA256BinaryVectors[] =
+	{
+		{ BinMsg01, sizeof(BinMsg01), BinDig01 },
+		{ BinMsg02, sizeof(BinMsg02), BinDig02 },
+		{ BinMsg03, sizeof(BinMsg03), BinDig03 },
+		{ BinMsg04, sizeof(BinMsg04), BinDig04 },
+		{ BinMsg05, sizeof(BinMsg05), BinDig05 },
+		{ BinMsg06, sizeof(BinMsg06), BinDig06 },
+		{ BinMsg07, sizeof(BinMsg07), BinDig07 },
+		{ BinMsg08, sizeof(BinMsg08), BinDig08 }
+	};
+	constexpr int NumSHA256BinaryVectors = sizeof(SHA256BinaryVectors)/sizeof(*SHA256BinaryVectors);
+
+	//
+	// SHA256 binary byte-count test vectors.
+	//
+	struct SHA256BinaryByteCountVector { uint8 Byte; int Count; const char* Digest; };
+	SHA256BinaryByteCountVector SHA256BinaryByteCountVectors[] =
+	{
+		{ 'a',	1000000,	"CDC76E5C 9914FB92 81A1C7E2 84D73E67 F1809A48 A497200E 046D39CC C7112CD0" },		// NIST_A
+		{ 0x00,	55,			"02779466 cdec1638 11d07881 5c633f21 90141308 1449002f 24aa3e80 f0b88ef7" },		// NIST_C
+		{ 0x00,	56,			"d4817aa5 497628e7 c77e6b60 6107042b bba31308 88c5f47a 375e6179 be789fbb" },		// NIST_C
+		{ 0x00,	57,			"65a16cb7 861335d5 ace3c607 18b5052e 44660726 da4cd13b b745381b 235a1785" },		// NIST_C
+		{ 0x00,	64,			"f5a5fd42 d16a2030 2798ef6e d309979b 43003d23 20d9f0e8 ea9831a9 2759fb4b" },		// NIST_C
+		{ 0x00,	1000,		"541b3e9d aa09b20b f85fa273 e5cbd3e8 0185aa4e c298e765 db87742b 70138a53" },		// NIST_C
+		{ 'A',	1000,		"c2e68682 3489ced2 017f6059 b8b23931 8b6364f6 dcd835d0 a519105a 1eadd6e4" },		// NIST_C
+		{ 'U',	1005,		"f4d62dde c0f3dd90 ea1380fa 16a5ff8d c4c54b21 740650f2 4afc4120 903552b0" },		// NIST_C
+		{ 0x00,	1000000,	"d29751f2 649b32ff 572b5e0a 9f541ea6 60a50f94 ff0beedf b0b692b9 24cc8025" },		// NIST_C
+
+		// For reference. May restrict mem usage and we don't have hash streaming API for sha256 yet.
+		{ 0x5a,	0x20000000,	"15a1868c 12cc5395 1e182344 277447cd 0979536b adcc512a d24c67e9 b2d4f3dd" },		// NIST_C
+		{ 0x00,	0x41000000,	"461c19a9 3bd4344f 9215f5ec 64357090 342bc66b 15a14831 7d276e31 cbc20b53" },		// NIST_C
+		{ 0x42,	0x6000003e,	"c23ce8a7 895f4b21 ec0daf37 920ac0a2 62a22004 5a03eb2d fed48ef9 b05aabea" }			// NIST_C
+	};
+	constexpr int NumSHA256BinaryByteCountVectors = sizeof(SHA256BinaryByteCountVectors)/sizeof(*SHA256BinaryByteCountVectors);
+
+	bool TestSHA256StringVectors();
+	bool TestSHA256BinaryVectors();
+	bool TestSHA256RepeatedByteVectors();
+	bool TestBIP39Vectors();
 }
 
 
-int tBip::QueryUserNumWords()
+bool Test::TestSHA256StringVectors()
+{
+	for (int t = 0; t < NumSHA256StringVectors; t++)
+	{
+		const char* message	= SHA256StringVectors[t].Message;
+		const char* digest	= SHA256StringVectors[t].Digest;
+		tuint256 computed	= tHash::tHashStringSHA256(message);
+		tuint256 correct	(digest, 16);							// The 16 is the base.
+		tPrintf
+		(
+			"String Message [%s]\n"
+			"   Computed %0_64|256X\n"
+			"   Correct  %0_64|256X\n",
+			message, computed, correct
+		);
+		bool pass = (computed == correct);
+		tPrintf("   Result:  %s\n\n", pass ? "Pass" : "Fail");
+		if (!pass)
+			return false;
+	}
+	return true;
+}
+
+
+bool Test::TestSHA256BinaryVectors()
+{
+	for (int t = 0; t < NumSHA256BinaryVectors; t++)
+	{
+		const uint8* message	= SHA256BinaryVectors[t].Message;
+		int length				= SHA256BinaryVectors[t].NumBytes;
+		const char* digest		= SHA256BinaryVectors[t].Digest;
+		tuint256 computed		= tHash::tHashDataSHA256(message, length);
+		tuint256 correct		(digest, 16);							// The 16 is the base.
+		tPrintf("Binary Message [ ");
+		for (int b = 0; b < length; b++)
+			tPrintf("%02X ", message[b]);
+		tPrintf("]\n");
+		tPrintf
+		(
+			"   Computed %0_64|256X\n"
+			"   Correct  %0_64|256X\n",
+			computed, correct
+		);
+		bool pass = (computed == correct);
+		tPrintf("   Result:  %s\n\n", pass ? "Pass" : "Fail");
+		if (!pass)
+			return false;
+	}
+	return true;
+}
+
+
+bool Test::TestSHA256RepeatedByteVectors()
+{
+	for (int t = 0; t < NumSHA256BinaryByteCountVectors; t++)
+	{
+		int count				= SHA256BinaryByteCountVectors[t].Count;
+		if (count > 1000000)	continue;												// Limit memory use.
+		uint8 byte				= SHA256BinaryByteCountVectors[t].Byte;
+		const char* digest		= SHA256BinaryByteCountVectors[t].Digest;
+
+		uint8* message = new uint8[count];
+		tStd::tMemset(message, byte, count);
+		tuint256 computed		= tHash::tHashDataSHA256(message, count);
+		delete[] message;
+		tuint256 correct		(digest, 16);											// The 16 is the base.
+
+		tPrintf
+		(
+			"Binary Message [%d Bytes of 0x%02X]\n"
+			"   Computed %0_64|256X\n"
+			"   Correct  %0_64|256X\n",
+			count, byte, computed, correct
+		);
+		bool pass = (computed == correct);
+		tPrintf("   Result:  %s\n\n", pass ? "Pass" : "Fail");
+		if (!pass)
+			return false;
+	}
+
+	return true;
+}
+
+
+
+bool Bip::SelfTest()
+{
+	tPrintf("Performing Self-Tests\n");
+	tPrintf("Testing SHA256 String Test Vectors\n");
+	if (!Test::TestSHA256StringVectors())
+		return false;
+
+	tPrintf("Testing SHA256 Binary Test Vectors\n");
+	if (!Test::TestSHA256BinaryVectors())
+		return false;
+
+	tPrintf("Testing SHA256 Binary Repeated Byte Test Vectors\n");
+	if (!Test::TestSHA256RepeatedByteVectors())
+		return false;
+
+	return true;
+}
+
+
+int Bip::QueryUserNumWords()
 {
 	tPrintf(ChNorm | ChVerb, "How many words do you want in your mnemonic phrase?\n");
 	tPrintf(ChNorm | ChVerb, "Valid answers are 0, 12, 15, 18, 21, and 24. Enter 0 for self-test.\n");
@@ -134,7 +313,7 @@ int tBip::QueryUserNumWords()
 }
 
 
-tBip::Method tBip::QueryUserMethod()
+Bip::Method Bip::QueryUserMethod()
 {
 	#ifdef DEV_AUTO_GENERATE
 	const char* methodOpts = "[0, 1, 2, 3]: ";
@@ -194,7 +373,7 @@ tBip::Method tBip::QueryUserMethod()
 }
 
 
-void tBip::QueryUserEntropyBits_Simple()
+void Bip::QueryUserEntropyBits_Simple()
 {
 	int roll = 0;
 	do
@@ -230,7 +409,7 @@ void tBip::QueryUserEntropyBits_Simple()
 }
 
 
-void tBip::QueryUserEntropyBits_Parallel()
+void Bip::QueryUserEntropyBits_Parallel()
 {
 	uint32 base36 = 0;
 	do
@@ -274,7 +453,7 @@ void tBip::QueryUserEntropyBits_Parallel()
 }
 
 
-void tBip::QueryUserEntropyBits_Extractor()
+void Bip::QueryUserEntropyBits_Extractor()
 {
 	int roll1 = 0;
 	int roll2 = 0;
@@ -310,7 +489,7 @@ void tBip::QueryUserEntropyBits_Extractor()
 
 
 #ifdef DEV_AUTO_GENERATE
-void tBip::QueryUserEntropyBits_DevGen()
+void Bip::QueryUserEntropyBits_DevGen()
 {
 	tMath::tRandom::DefaultGenerator.SetSeed( uint64(tSystem::tGetHardwareTimerCount()) );
 	tAssert((NumEntropyBitsNeeded - NumEntropyBitsGenerated) >= 32);
@@ -328,7 +507,7 @@ void tBip::QueryUserEntropyBits_DevGen()
 #endif
 
 
-int tBip::GetNumEntropyBits(int numWords)
+int Bip::GetNumEntropyBits(int numWords)
 {
 	switch (numWords)
 	{
@@ -352,13 +531,13 @@ int main(int argc, char** argv)
 	//	return 0;
 
 	tCommand::tParse(argc, argv);
-	tSystem::tSetChannels(tSystem::tChannel_Systems | tBip::ChNorm);
+	tSystem::tSetChannels(tSystem::tChannel_Systems | Bip::ChNorm);
 	if (VerboseOutput)
-		tSystem::tSetChannels(tSystem::tChannel_Systems | tBip::ChVerb);
+		tSystem::tSetChannels(tSystem::tChannel_Systems | Bip::ChVerb);
 	else if (NormalOutput)
-		tSystem::tSetChannels(tSystem::tChannel_Systems | tBip::ChNorm);
+		tSystem::tSetChannels(tSystem::tChannel_Systems | Bip::ChNorm);
 	else if (ConciseOutput)
-		tSystem::tSetChannels(tSystem::tChannel_Systems | tBip::ChConc);
+		tSystem::tSetChannels(tSystem::tChannel_Systems | Bip::ChConc);
 
 	if (ConciseOutput)
 		tPrintf("dice2bip39 V%d.%d.%d\n", Version::Major, Version::Minor, Version::Revision);
@@ -366,48 +545,52 @@ int main(int argc, char** argv)
 		tCommand::tPrintUsage(nullptr, "This program generates a valid BIP-39 passphrase using dice.", Version::Major, Version::Minor, Version::Revision);
 
 	#ifdef DEV_GEN_WORDLIST
-	tBip::GenerateWordListHeader();
+	Bip::GenerateWordListHeader();
 	return 0;
 	#endif
 
-	int numWords = tBip::QueryUserNumWords();
+	int numWords = Bip::QueryUserNumWords();
 	if (numWords == 0)
-		return tBip::SelfTest() ? 0 : 1;
+	{
+		bool pass = Bip::SelfTest();
+		tPrintf("Seft-Test Result: %s\n", pass ? "PASS" : "FAIL");
+		return pass ? 0 : 1;
+	}
 	tPrintf("A %d-word mnemonic will be created.\n", numWords);
 
-	tBip::NumEntropyBitsNeeded = tBip::GetNumEntropyBits(numWords);
-	tPrintf(tBip::ChVerb, "Your %d-word mnemonic phrase will contain %d bits of entropy.\n", numWords, tBip::NumEntropyBitsNeeded);
+	Bip::NumEntropyBitsNeeded = Bip::GetNumEntropyBits(numWords);
+	tPrintf(Bip::ChVerb, "Your %d-word mnemonic phrase will contain %d bits of entropy.\n", numWords, Bip::NumEntropyBitsNeeded);
 
-	tBip::Method method = tBip::QueryUserMethod();
-	tPrintf("Using %s method.\n", tBip::MedthodNames[ int(method) ]);
+	Bip::Method method = Bip::QueryUserMethod();
+	tPrintf("Using %s method.\n", Bip::MedthodNames[ int(method) ]);
 
-	tBip::NumEntropyBitsGenerated = 0;
-	tBip::Entropy.Clear();
+	Bip::NumEntropyBitsGenerated = 0;
+	Bip::Entropy.Clear();
 
-	while (tBip::NumEntropyBitsGenerated < tBip::NumEntropyBitsNeeded)
+	while (Bip::NumEntropyBitsGenerated < Bip::NumEntropyBitsNeeded)
 	{
 		switch (method)
 		{
 			#ifdef DEV_AUTO_GENERATE
-			case tBip::Method::Auto:
-				tBip::QueryUserEntropyBits_DevGen();
+			case Bip::Method::Auto:
+				Bip::QueryUserEntropyBits_DevGen();
 				break;
 			#endif
-			case tBip::Method::Simple:
-				tBip::QueryUserEntropyBits_Simple();
+			case Bip::Method::Simple:
+				Bip::QueryUserEntropyBits_Simple();
 				break;
-			case tBip::Method::Parallel:
-				tBip::QueryUserEntropyBits_Parallel();
+			case Bip::Method::Parallel:
+				Bip::QueryUserEntropyBits_Parallel();
 				break;
-			case tBip::Method::Extractor:
-				tBip::QueryUserEntropyBits_Extractor();
+			case Bip::Method::Extractor:
+				Bip::QueryUserEntropyBits_Extractor();
 				break;
 		}
-		tPrintf("Progress: %d of %d bits.\n", tBip::NumEntropyBitsGenerated, tBip::NumEntropyBitsNeeded);
-		tPrintf(tBip::ChVerb, "Entropy: %0_256|256b\n", tBip::Entropy);
+		tPrintf("Progress: %d of %d bits.\n", Bip::NumEntropyBitsGenerated, Bip::NumEntropyBitsNeeded);
+		tPrintf(Bip::ChVerb, "Entropy: %0_256|256b\n", Bip::Entropy);
 	}
 
-	tAssert(tBip::NumEntropyBitsGenerated == tBip::NumEntropyBitsNeeded);
+	tAssert(Bip::NumEntropyBitsGenerated == Bip::NumEntropyBitsNeeded);
 
 	// From BIP-39
 	//
@@ -419,17 +602,17 @@ int main(int argc, char** argv)
 	//
 	// Compute the SHA-256 hash of the entropy.
 	uint8 entropyByteArray[32];
-	int numEntropyBytes = tBip::NumEntropyBitsGenerated/8;
+	int numEntropyBytes = Bip::NumEntropyBitsGenerated/8;
 	for (int b = 0; b < numEntropyBytes; b++)
-		entropyByteArray[b] = tBip::Entropy.GetByte(numEntropyBytes - b - 1);
+		entropyByteArray[b] = Bip::Entropy.GetByte(numEntropyBytes - b - 1);
 	tuint256 sha256 = tHash::tHashDataSHA256(entropyByteArray, numEntropyBytes);
-	tPrintf(tBip::ChVerb | tBip::ChNorm, "SHA256: %0_64|256X\n", sha256);
+	tPrintf(Bip::ChVerb | Bip::ChNorm, "SHA256: %0_64|256X\n", sha256);
 
 	// How many of the first bits do we need?
-	int numHashBitsNeeded = tBip::NumEntropyBitsNeeded / 32;
+	int numHashBitsNeeded = Bip::NumEntropyBitsNeeded / 32;
 	uint8 firstBits = sha256.GetByte(31);
 	firstBits >>= (8-numHashBitsNeeded);
-	tPrintf(tBip::ChVerb, "The first %d bits of the sha are: %08b\n", numHashBitsNeeded, firstBits);
+	tPrintf(Bip::ChVerb, "The first %d bits of the sha are: %08b\n", numHashBitsNeeded, firstBits);
 
 	// We now need to store the entropy and the first bits of the sha in a single variable. We make one
 	// big enough for the 24-word case: 264 bits. Just for efficiency, we'll use 288, since internally
@@ -437,13 +620,13 @@ int main(int argc, char** argv)
 	// Actually, we'll just use 512, as the tPrintf supports that size.
 	tuint512 entropyAndChecksum;
 	entropyAndChecksum.MakeZero();
-	for (int r = 0; r < tBip::Entropy.GetNumElements(); r++)
-		entropyAndChecksum.RawElement(r) = tBip::Entropy.GetElement(r);
+	for (int r = 0; r < Bip::Entropy.GetNumElements(); r++)
+		entropyAndChecksum.RawElement(r) = Bip::Entropy.GetElement(r);
 
 	entropyAndChecksum <<= numHashBitsNeeded;
 	entropyAndChecksum |= firstBits;
-	tPrintf(tBip::ChVerb, "EntropyAndChecksum\n");
-	tPrintf(tBip::ChVerb, "%0_512|512b\n", entropyAndChecksum);
+	tPrintf(Bip::ChVerb, "EntropyAndChecksum\n");
+	tPrintf(Bip::ChVerb, "%0_512|512b\n", entropyAndChecksum);
 
 	// Next we make an array for our word indices. We will be filling it in backwards to
 	// avoid extra shift operations. We just shift by 11 each time.
@@ -460,14 +643,14 @@ int main(int argc, char** argv)
 	for (int w = numWords-1; w >= 0; w--)
 	{
 		int wordIndex = wordIndices[w];
-		tPrintf(tBip::ChVerb, "Word %02d with index %04d is: %s\n", numWords - w, wordIndex, Bip39WordListEnglish[wordIndex]);
-		tPrintf(tBip::ChNorm | tBip::ChConc, "Word %02d: %s\n", numWords - w, Bip39WordListEnglish[wordIndex]);
+		tPrintf(Bip::ChVerb, "Word %02d with index %04d is: %s\n", numWords - w, wordIndex, Bip39WordListEnglish[wordIndex]);
+		tPrintf(Bip::ChNorm | Bip::ChConc, "Word %02d: %s\n", numWords - w, Bip39WordListEnglish[wordIndex]);
 	}
 
 	// Before exiting let's clear the entropy variables.
 	// @todo Make sure this can't get optimized away.
-	tPrintf(tBip::ChVerb, "Erasing Memory\n");
-	tBip::Entropy.Clear();
+	tPrintf(Bip::ChVerb, "Erasing Memory\n");
+	Bip::Entropy.Clear();
 	for (int w = 0; w < numWords; w++)
 		wordIndices[w] = -1;
 	for (int b = 0; b < 32; b++)
