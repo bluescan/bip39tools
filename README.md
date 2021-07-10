@@ -3,10 +3,10 @@ Generate a valid BIP-39 mnemonic using dice.
 
 ### Status
 This software is now working. Tested generation of 12, 15, 18, 21, and 24 word mnemonics against https://iancoleman.io/bip39/
-The minor outstanding issues and todo's:
-* Self test, does many SHA-256 implementation test, but still need to add the
+The minor outstanding todo's:
+* Self test. Currently does many SHA-256 implementation tests, but still need to add the
   test vectors for BIP-39 from the Trezor site: https://github.com/trezor/python-mnemonic/blob/master/vectors.json
-* Compile on Raspberry Pi/ARM in preparation for getting it going on a Pi Zero (no W).
+* Compile on Raspberry Pi/ARM32 in preparation for getting it going on a Pi Zero (no W).
 * Support the official non-Englist word lists.
 
 ### Introduction
@@ -88,13 +88,13 @@ bits to compute the checksum. I'm toying with the idea of running it on an air-g
 like that. More to fill out in this section.
 
 ### Building
-It's a cmake C++ project. Install cmake, Visual Studio Code, and open the directory VS Code. Same instructions for Windows and Linux.
+It's a cmake C++ project. Install cmake and Visual Studio Code. Open the dice2bip39 directory VS Code. Same instructions for Windows and Linux.
 
 ### Running
-Type bip39dice from a command prompt or shell. The only command-line options are to control the amount of ouput spew:
-* ***bip39dice -c***
+Type dice2bip39 from a command prompt or shell. The command-line options control the amount of ouput spew.
+* ***dice2bip39 -c***
   For a concise level of output.
-* ***bip39dice -n***
+* ***dice2bip39 -n***
   For a normal amount of output (default).
-* ***bip39dice -v***
+* ***dice2bip39 -v***
   For more detailed information including binary prints of the entropy and hash.
