@@ -4,8 +4,6 @@ Generate a valid BIP-39 mnemonic using dice.
 ### Status
 This software is now working. Tested generation of 12, 15, 18, 21, and 24 word mnemonics against https://iancoleman.io/bip39/
 The minor outstanding todo's:
-* Self test. Currently does many SHA-256 implementation tests, but still need to add the
-  test vectors for BIP-39 from the Trezor site: https://github.com/trezor/python-mnemonic/blob/master/vectors.json
 * Compile on Raspberry Pi/ARM32 in preparation for getting it going on a Pi Zero (no W).
 * Support the official non-Englist word lists.
 
@@ -82,10 +80,14 @@ If a checksum is really that important, why not choose something much simpler th
 
 One final note. I have perhaps been too much of a critic. Overall BIP-39 is completely functional and reliable. The fact that so many multiples of 32 (160, 192, 224, and 256) end up being divisible by 11 after adding the multiple divided by 32 is 'pretty neat'.
 
+### Self Tests
+
+A good number of SHA-256 vectors from NIST are tested (URLs to follow). Test vectors for BIP-39 from Trezor's GitHub (https://github.com/trezor/python-mnemonic/blob/master/vectors.json) are also
+confirmed when running the self test.
+
 ### Hardware Setup
-This leads to the question of what to do if you want your own source of randomness. This software needs those entropy
-bits to compute the checksum. I'm toying with the idea of running it on an air-gapped Raspberry Pi Zero (non-W). Something
-like that. More to fill out in this section.
+Whar hardware should this be run on. This software needs those entropy
+bits to compute the checksum. I'm toying with the idea of running it on an air-gapped Raspberry Pi Zero (non-W). Something like that. More to fill out in this section.
 
 ### Building
 It's a cmake C++ project. Install cmake and Visual Studio Code. Open the dice2bip39 directory VS Code. Same instructions for Windows and Linux.

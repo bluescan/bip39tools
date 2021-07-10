@@ -37,6 +37,7 @@ namespace Bip
 	bool SelfTest();
 	int QueryUserNumWords();
 	int GetNumEntropyBits(int numWords);
+	int GetNumEntropyWords(int numBits);
 
 	enum class Method { Auto, Simple, Parallel, Extractor };
 	const char* MedthodNames[] = { "Auto", "Simple", "Parallel", "Extractor" };
@@ -52,6 +53,7 @@ namespace Bip
 	void GenerateWordListHeader();
 	#endif
 	int InputInt();				// Returns -1 if couldn't read an integer >= 0.
+	void ComputeWordsFromEntropy(const char* words[], int numWords);
 
 	uint64 ChConc = tSystem::tChannel_Verbosity0;
 	uint64 ChNorm = tSystem::tChannel_Verbosity1;
@@ -183,6 +185,39 @@ namespace Test
 	};
 	constexpr int NumSHA256BinaryByteCountVectors = sizeof(SHA256BinaryByteCountVectors)/sizeof(*SHA256BinaryByteCountVectors);
 
+	//
+	// BIP39 test vectors.
+	//
+	struct BIP39Vector { const char* Entropy; const char* Mnemonic; };
+	BIP39Vector BIP39Vectors[] =
+	{
+		{ "00000000000000000000000000000000",									"abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about" },
+		{ "7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f",									"legal winner thank year wave sausage worth useful legal winner thank yellow" },
+		{ "80808080808080808080808080808080",									"letter advice cage absurd amount doctor acoustic avoid letter advice cage above" },
+		{ "ffffffffffffffffffffffffffffffff",									"zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo wrong" },
+		{ "000000000000000000000000000000000000000000000000",					"abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon agent" },
+		{ "7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f",					"legal winner thank year wave sausage worth useful legal winner thank year wave sausage worth useful legal will" },
+		{ "808080808080808080808080808080808080808080808080",					"letter advice cage absurd amount doctor acoustic avoid letter advice cage absurd amount doctor acoustic avoid letter always" },
+		{ "ffffffffffffffffffffffffffffffffffffffffffffffff",					"zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo when" },
+		{ "0000000000000000000000000000000000000000000000000000000000000000",	"abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon art" },
+		{ "7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f",	"legal winner thank year wave sausage worth useful legal winner thank year wave sausage worth useful legal winner thank year wave sausage worth title" },
+		{ "8080808080808080808080808080808080808080808080808080808080808080",	"letter advice cage absurd amount doctor acoustic avoid letter advice cage absurd amount doctor acoustic avoid letter advice cage absurd amount doctor acoustic bless" },
+		{ "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",	"zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo vote" },
+		{ "9e885d952ad362caeb4efe34a8e91bd2",									"ozone drill grab fiber curtain grace pudding thank cruise elder eight picnic" },
+		{ "6610b25967cdcca9d59875f5cb50b0ea75433311869e930b",					"gravity machine north sort system female filter attitude volume fold club stay feature office ecology stable narrow fog" },
+		{ "68a79eaca2324873eacc50cb9c6eca8cc68ea5d936f98787c60c7ebc74e6ce7c",	"hamster diagram private dutch cause delay private meat slide toddler razor book happy fancy gospel tennis maple dilemma loan word shrug inflict delay length" },
+		{ "c0ba5a8e914111210f2bd131f3d5e08d",									"scheme spot photo card baby mountain device kick cradle pact join borrow" },
+		{ "6d9be1ee6ebd27a258115aad99b7317b9c8d28b6d76431c3",					"horn tenant knee talent sponsor spell gate clip pulse soap slush warm silver nephew swap uncle crack brave" },
+		{ "9f6a2878b2520799a44ef18bc7df394e7061a224d2c33cd015b157d746869863",	"panda eyebrow bullet gorilla call smoke muffin taste mesh discover soft ostrich alcohol speed nation flash devote level hobby quick inner drive ghost inside" },
+		{ "23db8160a31d3e0dca3688ed941adbf3",									"cat swing flag economy stadium alone churn speed unique patch report train" },
+		{ "8197a4a47f0425faeaa69deebc05ca29c0a5b5cc76ceacc0",					"light rule cinnamon wrap drastic word pride squirrel upgrade then income fatal apart sustain crack supply proud access" },
+		{ "066dca1a2bb7e8a1db2832148ce9933eea0f3ac9548d793112d9a95c9407efad",	"all hour make first leader extend hole alien behind guard gospel lava path output census museum junior mass reopen famous sing advance salt reform" },
+		{ "f30f8c1da665478f49b001d94c5fc452",									"vessel ladder alter error federal sibling chat ability sun glass valve picture" },
+		{ "c10ec20dc3cd9f652c7fac2f1230f7a3c828389a14392f05",					"scissors invite lock maple supreme raw rapid void congress muscle digital elegant little brisk hair mango congress clump" },
+		{ "f585c11aec520db57dd353c69554b21a89b20fb0650966fa0a9d6f74fd989d8f",	"void come effort suffer camp survey warrior heavy shoot primary clutch crush open amazing screen patrol group space point ten exist slush involve unfold" }
+	};
+	constexpr int NumBIP39Vectors = sizeof(BIP39Vectors)/sizeof(*BIP39Vectors);
+
 	bool TestSHA256StringVectors();
 	bool TestSHA256BinaryVectors();
 	bool TestSHA256RepeatedByteVectors();
@@ -274,20 +309,63 @@ bool Test::TestSHA256RepeatedByteVectors()
 }
 
 
+bool Test::TestBIP39Vectors()
+{
+	for (int t = 0; t < NumBIP39Vectors; t++)
+	{
+		const char* entropy		= BIP39Vectors[t].Entropy;
+		const char* mnemonic	= BIP39Vectors[t].Mnemonic;
+		tPrintf("Entropy [%064s]\n", entropy);
+
+		Bip::Entropy.Set(entropy, 16);
+		tPrintf("   Uint [%064|256x]\n", Bip::Entropy);
+
+		int numBits = tStd::tStrlen(entropy)*4;
+		int numWords = Bip::GetNumEntropyWords(numBits);
+		tPrintf("   NumBits %d. NumWords %d\n", numBits, numWords);
+
+		Bip::NumEntropyBitsGenerated = Bip::NumEntropyBitsNeeded = numBits;
+
+		const char* words[24];
+		Bip::ComputeWordsFromEntropy(words, numWords);
+		char generatedWords[1024];
+		char* curr = generatedWords;
+		for (int w = 0; w < numWords; w++)
+		{
+			int numWritten = tsPrintf(curr, "%s ", words[w]);
+			curr += numWritten;
+		}
+		*(curr-1) = '\0';
+		tPrintf("   GenWords [%s]\n", generatedWords);
+		tPrintf("   Mnemonic [%s]\n", mnemonic);
+
+		bool pass = (tStd::tStrcmp(generatedWords, mnemonic) == 0);
+		tPrintf("   Result:  %s\n\n", pass ? "Pass" : "Fail");
+		if (!pass)
+			return false;
+	}
+	return true;
+}
+
 
 bool Bip::SelfTest()
 {
 	tPrintf("Performing Self-Tests\n");
-	tPrintf("Testing SHA256 String Test Vectors\n");
+
+	tPrintf("Testing SHA256 String Vectors\n");
 	if (!Test::TestSHA256StringVectors())
 		return false;
 
-	tPrintf("Testing SHA256 Binary Test Vectors\n");
+	tPrintf("Testing SHA256 Binary Vectors\n");
 	if (!Test::TestSHA256BinaryVectors())
 		return false;
 
-	tPrintf("Testing SHA256 Binary Repeated Byte Test Vectors\n");
+	tPrintf("Testing SHA256 Binary Repeated Byte Vectors\n");
 	if (!Test::TestSHA256RepeatedByteVectors())
+		return false;
+
+	tPrintf("Testing BIP39 Vectors\n");
+	if (!Test::TestBIP39Vectors())
 		return false;
 
 	return true;
@@ -521,77 +599,22 @@ int Bip::GetNumEntropyBits(int numWords)
 }
 
 
-int main(int argc, char** argv)
+int Bip::GetNumEntropyWords(int numBits)
 {
-	// Some utf-8 tests.
-	// This works so long as /utf-8 is specified in the compiler options. That flag makes source files be interpreted as utf-8 as well as compiling output string literals to utf-8.
-	//	FILE* ff = fopen("testutf8.txt", "wb");
-	//	fprintf(ff, u8"UTF8STR: 的一是在不了有\n");
-	//	fclose(ff);
-	//	return 0;
-
-	tCommand::tParse(argc, argv);
-	tSystem::tSetChannels(tSystem::tChannel_Systems | Bip::ChNorm);
-	if (VerboseOutput)
-		tSystem::tSetChannels(tSystem::tChannel_Systems | Bip::ChVerb);
-	else if (NormalOutput)
-		tSystem::tSetChannels(tSystem::tChannel_Systems | Bip::ChNorm);
-	else if (ConciseOutput)
-		tSystem::tSetChannels(tSystem::tChannel_Systems | Bip::ChConc);
-
-	if (ConciseOutput)
-		tPrintf("dice2bip39 V%d.%d.%d\n", Version::Major, Version::Minor, Version::Revision);
-	else
-		tCommand::tPrintUsage(nullptr, "This program generates a valid BIP-39 passphrase using dice.", Version::Major, Version::Minor, Version::Revision);
-
-	#ifdef DEV_GEN_WORDLIST
-	Bip::GenerateWordListHeader();
+	switch (numBits)
+	{
+		case 128:	return 12;
+		case 160:	return 15;
+		case 192:	return 18;
+		case 224:	return 21;
+		case 256:	return 24;
+	}
 	return 0;
-	#endif
+}
 
-	int numWords = Bip::QueryUserNumWords();
-	if (numWords == 0)
-	{
-		bool pass = Bip::SelfTest();
-		tPrintf("Seft-Test Result: %s\n", pass ? "PASS" : "FAIL");
-		return pass ? 0 : 1;
-	}
-	tPrintf("A %d-word mnemonic will be created.\n", numWords);
 
-	Bip::NumEntropyBitsNeeded = Bip::GetNumEntropyBits(numWords);
-	tPrintf(Bip::ChVerb, "Your %d-word mnemonic phrase will contain %d bits of entropy.\n", numWords, Bip::NumEntropyBitsNeeded);
-
-	Bip::Method method = Bip::QueryUserMethod();
-	tPrintf("Using %s method.\n", Bip::MedthodNames[ int(method) ]);
-
-	Bip::NumEntropyBitsGenerated = 0;
-	Bip::Entropy.Clear();
-
-	while (Bip::NumEntropyBitsGenerated < Bip::NumEntropyBitsNeeded)
-	{
-		switch (method)
-		{
-			#ifdef DEV_AUTO_GENERATE
-			case Bip::Method::Auto:
-				Bip::QueryUserEntropyBits_DevGen();
-				break;
-			#endif
-			case Bip::Method::Simple:
-				Bip::QueryUserEntropyBits_Simple();
-				break;
-			case Bip::Method::Parallel:
-				Bip::QueryUserEntropyBits_Parallel();
-				break;
-			case Bip::Method::Extractor:
-				Bip::QueryUserEntropyBits_Extractor();
-				break;
-		}
-		tPrintf("Progress: %d of %d bits.\n", Bip::NumEntropyBitsGenerated, Bip::NumEntropyBitsNeeded);
-		tPrintf(Bip::ChVerb, "Entropy: %0_256|256b\n", Bip::Entropy);
-	}
-
-	tAssert(Bip::NumEntropyBitsGenerated == Bip::NumEntropyBitsNeeded);
-
+void Bip::ComputeWordsFromEntropy(const char* words[], int numWords)
+{
 	// From BIP-39
 	//
 	// First, an initial entropy of ENT bits is generated. A checksum is generated by taking the first
@@ -639,23 +662,105 @@ int main(int argc, char** argv)
 		entropyAndChecksum >>= 11;
 	}
 
-	// And finally we print out the words in the correct order.
-	for (int w = numWords-1; w >= 0; w--)
+	// And finally we put the words on the list in the correct order.
+	for (int w = 0; w < numWords; w++)
 	{
-		int wordIndex = wordIndices[w];
-		tPrintf(Bip::ChVerb, "Word %02d with index %04d is: %s\n", numWords - w, wordIndex, Bip39WordListEnglish[wordIndex]);
-		tPrintf(Bip::ChNorm | Bip::ChConc, "Word %02d: %s\n", numWords - w, Bip39WordListEnglish[wordIndex]);
+		int wordIndex = wordIndices[numWords - w - 1];
+		words[w] = Bip39WordListEnglish[wordIndex];
 	}
 
 	// Before exiting let's clear the entropy variables.
 	// @todo Make sure this can't get optimized away.
-	tPrintf(Bip::ChVerb, "Erasing Memory\n");
-	Bip::Entropy.Clear();
 	for (int w = 0; w < numWords; w++)
 		wordIndices[w] = -1;
 	for (int b = 0; b < 32; b++)
 		entropyByteArray[b] = 0;
 	entropyAndChecksum.MakeZero();
-	
+}
+
+
+int main(int argc, char** argv)
+{
+	// Some utf-8 tests.
+	// This works so long as /utf-8 is specified in the compiler options. That flag makes source files be interpreted as utf-8 as well as compiling output string literals to utf-8.
+	//	FILE* ff = fopen("testutf8.txt", "wb");
+	//	fprintf(ff, u8"UTF8STR: 的一是在不了有\n");
+	//	fclose(ff);
+	//	return 0;
+
+	tCommand::tParse(argc, argv);
+	tSystem::tSetChannels(tSystem::tChannel_Systems | Bip::ChNorm);
+	if (VerboseOutput)
+		tSystem::tSetChannels(tSystem::tChannel_Systems | Bip::ChVerb);
+	else if (NormalOutput)
+		tSystem::tSetChannels(tSystem::tChannel_Systems | Bip::ChNorm);
+	else if (ConciseOutput)
+		tSystem::tSetChannels(tSystem::tChannel_Systems | Bip::ChConc);
+
+	if (ConciseOutput)
+		tPrintf("dice2bip39 V%d.%d.%d\n", Version::Major, Version::Minor, Version::Revision);
+	else
+		tCommand::tPrintUsage(nullptr, "This program generates a valid BIP-39 passphrase using dice.", Version::Major, Version::Minor, Version::Revision);
+
+	#ifdef DEV_GEN_WORDLIST
+	Bip::GenerateWordListHeader();
+	return 0;
+	#endif
+
+	int numWords = Bip::QueryUserNumWords();
+	if (numWords == 0)
+	{
+		tSystem::tSetChannels(tSystem::tChannel_Systems);
+		bool pass = Bip::SelfTest();
+		tPrintf("Seft-Test Result: %s\n", pass ? "PASS" : "FAIL");
+		return pass ? 0 : 1;
+	}
+	tPrintf("A %d-word mnemonic will be created.\n", numWords);
+
+	Bip::NumEntropyBitsNeeded = Bip::GetNumEntropyBits(numWords);
+	tPrintf(Bip::ChVerb, "Your %d-word mnemonic phrase will contain %d bits of entropy.\n", numWords, Bip::NumEntropyBitsNeeded);
+
+	Bip::Method method = Bip::QueryUserMethod();
+	tPrintf("Using %s method.\n", Bip::MedthodNames[ int(method) ]);
+
+	Bip::NumEntropyBitsGenerated = 0;
+	Bip::Entropy.Clear();
+
+	while (Bip::NumEntropyBitsGenerated < Bip::NumEntropyBitsNeeded)
+	{
+		switch (method)
+		{
+			#ifdef DEV_AUTO_GENERATE
+			case Bip::Method::Auto:
+				Bip::QueryUserEntropyBits_DevGen();
+				break;
+			#endif
+			case Bip::Method::Simple:
+				Bip::QueryUserEntropyBits_Simple();
+				break;
+			case Bip::Method::Parallel:
+				Bip::QueryUserEntropyBits_Parallel();
+				break;
+			case Bip::Method::Extractor:
+				Bip::QueryUserEntropyBits_Extractor();
+				break;
+		}
+		tPrintf("Progress: %d of %d bits.\n", Bip::NumEntropyBitsGenerated, Bip::NumEntropyBitsNeeded);
+		tPrintf(Bip::ChVerb, "Entropy: %0_256|256b\n", Bip::Entropy);
+	}
+
+	tAssert(Bip::NumEntropyBitsGenerated == Bip::NumEntropyBitsNeeded);
+
+	const char* words[24];
+	Bip::ComputeWordsFromEntropy(words, numWords);
+
+	// Tell the user the words.
+	for (int w = 0; w < numWords; w++)
+		tPrintf("Word %02d: %s\n", w+1, words[w]);
+
+	// Before exiting let's clear the entropy variables.
+	// @todo Make sure this can't get optimized away.
+	tPrintf(Bip::ChVerb, "Erasing Memory\n");
+	Bip::Entropy.Clear();	
 	return 0;
 }
