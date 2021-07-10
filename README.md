@@ -5,7 +5,7 @@ Generate a valid BIP-39 mnemonic using dice.
 This software is now working. Tested generation of 12, 15, 18, 21, and 24 word mnemonics against https://iancoleman.io/bip39/
 The minor outstanding todo's:
 * Compile on Raspberry Pi/ARM32 in preparation for getting it going on a Pi Zero (no W).
-* Support the official non-Englist word lists.
+* Support the official non-English word lists.
 
 ### Introduction
 This software is for generating a valid BIP-39 mnemonic of 12, 15, 18, 21 or 24 words in cases where a user
@@ -86,7 +86,7 @@ A good number of SHA-256 vectors from NIST are tested (URLs to follow). Test vec
 confirmed when running the self test.
 
 ### Hardware Setup
-Whar hardware should this be run on. This software needs those entropy
+What hardware should this be run on. This software needs those entropy
 bits to compute the checksum. I'm toying with the idea of running it on an air-gapped Raspberry Pi Zero (non-W). Something like that. More to fill out in this section.
 
 ### Building
