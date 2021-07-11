@@ -1,11 +1,6 @@
 # dice2bip39
 Generate a valid BIP-39 mnemonic using dice.
 
-### Status
-This software is now working. 
-The minor outstanding todo's:
-* Compile on Raspberry Pi/ARM32 in preparation for getting it going on a Pi Zero (no W).
-
 ### Introduction
 This software is for generating a valid BIP-39 mnemonic of 12, 15, 18, 21 or 24 words in cases where a user
 would rather generate their own entropy instead of relying on an unknown or otherwise opaque randomness source. This tool
