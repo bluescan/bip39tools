@@ -2,14 +2,18 @@
 Generate a valid BIP-39 mnemonic using dice.
 
 ### Status
-This software is now working. Tested generation of 12, 15, 18, 21, and 24 word mnemonics against https://iancoleman.io/bip39/
+This software is now working. 
 The minor outstanding todo's:
 * Compile on Raspberry Pi/ARM32 in preparation for getting it going on a Pi Zero (no W).
 
 ### Introduction
 This software is for generating a valid BIP-39 mnemonic of 12, 15, 18, 21 or 24 words in cases where a user
 would rather generate their own entropy instead of relying on an unknown or otherwise opaque randomness source. This tool
-uses physical dice for the source of randomness.
+uses physical dice for the source of randomness. Generation of 12, 15, 18, 21, and 24 word mnemonics has been 
+tested against https://iancoleman.io/bip39/. There are also a number of vectors for both SHA-256 and BIP39 that
+are tested when running the 'self-test'. There are 3 different methods of rolling your dice, all of which are secure
+and easy to understand. The third method even allows a loaded die to be used, but it takes quite a few more rolls
+since the bias is eliminated.
 
 ### Entropy Generation
 Depending of the number and type of dice you have, different methods of generating random bits are used.
@@ -42,12 +46,15 @@ the time when the two rolls match (and no, it's not 1/36 because any number can 
 rolls to generate a 24-word (256 bit) mnemonic.
 
 ### BIP-39 Considerations
-The tricky part with BIP-39 is computing a valid checksum. The last word contains some bits that are the
-checksum, and some that are part of the source entropy, so you really can't think of the checksum as 'the last word'.
 
 BIP-39 is specified here https://github.com/bitcoin/bips/blob/master/bip-0039.mediawiki
 
-The existence of the checksum (and specifically the method used to compute it) is, in my opinion, unfortunate.
+The tricky part with BIP-39 is computing a valid checksum offline. The last word contains some bits that are the checksum and some
+that are part of the source entropy -- the checksum is not really 'the last word'. That's why with other dice methods you can
+roll for 23 words, and then there are multiple choices for the final word, one for each choice of the entropy bits for that word.
+With a 24-word mnemonic, 8 of the 11 bits are for the checksum.
+
+The existence of the checksum (and specifically the method used to compute it) is, I think, a little unfortunate.
 If there were no checksum, it would be a trivial exercise to generate the mnemonic from any random source a
 user desires without the sentence touching a computer at all. Specifically there are two paragraphs that I find
 vague:
@@ -71,26 +78,33 @@ So here it says it generates a valid seed, but NOT to make the wallet available.
 I know what I'd do if someone was importing a mnemonic -- I'd ignore the checksum completely and allow the user to
 access their funds. If they entered it wrong they'll know soon enough as all balances will be zero. However, not
 everyone is me, so the only conclusion is that users generating their mnemonic phrase for the first time must err
-on the side of caution. The hash must be valid. For a 24 word mnemonic sentence, a computer must be involved...
-calculating a SHA256 hash without one is an exercise in insanity.
+on the side of caution. The hash must be valid. For a 24-word mnemonic sentence, a computer must be involved...
+calculating a SHA256 hash without one is an exercise in futility.
 
-If a checksum is really that important, why not choose something much simpler than SHA-256. Something that you could compute easily on pen and paper (which can be burned afterward). The number of bits of the SHA-256 hash that are actually used in BIP-39 is (only) between 4 and 8 (inclusive, depending on total word count), so the fact that SHA-256 is
-(currently) cryptographically secure is irrelevant.
+If a checksum is really that important, why not choose something much simpler than SHA-256. The number of bits of
+the SHA-256 hash that are actually used in BIP-39 is (only) between 4 and 8 (inclusive, depending on total word count),
+so the fact that SHA-256 is (currently) cryptographically secure is irrelevant. Something that you could compute easily
+on pen and paper (which can be burned afterward)... maybe even a 'check sum'.
 
-One final note. I have perhaps been too much of a critic. Overall BIP-39 is completely functional and reliable. The fact that so many multiples of 32 (160, 192, 224, and 256) end up being divisible by 11 after adding the multiple divided by 32 is 'pretty neat'.
+Final note. I have perhaps been too much of a critic. BIP-39 is great and I'm glad it exists. The fact that so many
+consecutive multiples of 32 (160, 192, 224, and 256) end up being divisible by 11 after adding the multiple divided
+by 32 is 'pretty neat'.
 
 ### Self Tests
 A good number of SHA-256 vectors from NIST are tested (URLs to follow). Test vectors for BIP-39 from Trezor's GitHub (https://github.com/trezor/python-mnemonic/blob/master/vectors.json) are also
 confirmed when running the self test.
 
 ### Mnemonic Phrase Language
-Supported languages for the generated word list are: English, Czech, Portuguese, Italian,   French, Spanish, Japanese, Korean, Chinese_Simplified, Chinese_Traditional. These are all the
-sanctioned lists available (10) at the time this tool was created. For languages with special
-characters (French and up), this tool provided the option to save the list to a file.
+Supported languages for the generated word list are: English, Czech, Portuguese, Italian, French, Spanish, Japanese, Korean, Chinese_Simplified, Chinese_Traditional. These are all the sanctioned lists available (10) at the time this tool was created.
+For languages with special characters (French and up), this tool provides the option to save the word-list to a file so you
+can read them in a good utf-8 text editor afterwards. While I don't recommend it, if you're running on a fully air-gapped
+machine that will be either wiped after use, or never connected to a network again, it should be fine.
 
 ### Hardware Setup
-What hardware should this be run on. This software needs those entropy
-bits to compute the checksum. I'm toying with the idea of running it on an air-gapped Raspberry Pi Zero (non-W). Something like that. More to fill out in this section.
+What hardware should this be run on. This dice software (or any other tool for generating a 24-word phrase) needs those
+entropy bits to compute the checksum. I'm toying with the idea of running it on an air-gapped Raspberry Pi Zero (non-W).
+These devices a) Don't cost an arm and a leg. and b) Have no wifi or Bluetooth. I don't have dice2bip39 running yet
+on 32bit ARM though (ARMv6) so this is still 'work in progress'.
 
 ### Building
 It's a cmake C++ project. Install cmake and Visual Studio Code. Open the dice2bip39 directory VS Code. Same instructions for Windows and Linux.
