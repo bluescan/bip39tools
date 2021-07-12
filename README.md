@@ -21,11 +21,12 @@ even re-rolls may not be successful.
 
 * ***Method 2 - Parallel :*** If you have two Casino-quality 6-sided dice that are evenly balanced and have no bias, this
 method generates a max of 5 bits for each roll of two dice. This is because you can treat the two rolls as a double-digit
-base 36 number -- [0,5][0,5]. 32 is the next lower power of two (2^5 = 32 so 5 bits), so each double-roll generates 5 bits.
-Only 4 combinations of the 36 would require a re-roll (1 out of 9). In terms of number of 2-die rolls to generate a 24 word
+base 6 number -- [0,5][0,5] which is a value from 0 to 35. 32 is the next lower power of two (2^5 = 32 so 5 bits), so each
+double-roll generates 5 bits.
+Only 4 combinations of the 36 states would require a re-roll (1 out of 9). In terms of number of 2-die rolls to generate a 24 word
 mnemonic, 256 / 5 = 52. Including one level of re-rolls, you can expect roughly 52 + 52/9 = 58 double-rolls. It is slightly
 higher for the same reason as before. Note, the software does not support 3 dice. It's too far from the next lower power
-of two. You could use one die and every two rolls generate the base-36 number. That's only 116 rolls so is better than method 1,
+of two. You could use one die and every two rolls generate the 2-digit base-6 number. That's only 116 rolls so is better than method 1,
 but you don't get to see the immediate progression after each roll, so the simpler one-die option is being kept. When rolling
 two dice at the same time, enter the leftmost die first. Be consistent, you don't want to subconsciously order them
 smaller to larger or some such.
