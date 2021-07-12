@@ -115,6 +115,7 @@ target_link_libraries(
 		# building from bash.
 		$<$<PLATFORM_ID:Linux>:m>
 		$<$<PLATFORM_ID:Linux>:stdc++>
+		$<$<PLATFORM_ID:Linux>:stdc++fs>
 		$<$<PLATFORM_ID:Windows>:shlwapi.lib>
 )
 
