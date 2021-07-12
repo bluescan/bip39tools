@@ -96,10 +96,16 @@ can read them in a good utf-8 text editor afterwards. While I don't recommend it
 machine that will be either wiped after use, or never connected to a network again, it should be fine.
 
 ### Hardware Setup
-What hardware should this be run on. This dice software (or any other tool for generating a 24-word phrase) needs those
-entropy bits to compute the checksum. I'm toying with the idea of running it on an air-gapped Raspberry Pi Zero (non-W).
-These devices a) Don't cost an arm and a leg. and b) Have no wifi or Bluetooth. I don't have dice2bip39 running yet
-on 32bit ARM though (ARMv6) so this is still 'work in progress'.
+What hardware should this be run on? This software (or any other dice tool for generating a 24-word phrase) needs those
+entropy bits to compute the checksum. I will probably try to get it running it on an air-gapped Raspberry Pi Zero (non-W).
+These devices a) Don't cost an arm and a leg. and b) Have no wifi or Bluetooth. Dice2bip39 is now running on a 32bit ARM
+Raspberry Pi 3b board (and passes the self-tests), so it's 90% there. The Pi Zero is a lesser 32bit ARM (ARMv6) so this is
+still 'work in progress'. Will likely need to use the non-desktop version of Raspberry Pi OS. I'll probably just cmake configure
+on a different machine and move the content of the build directory over, and then hopefully just 'make' will work. For reference
+it has currently been run on:
+* Windows 10 (x64)
+* Ubuntu (x64)
+* Raspberry Pi 3b (ARM 32 bit)
 
 ### Building
 It's a cmake C++ project. Install cmake and Visual Studio Code. Open the dice2bip39 directory VS Code. Same instructions for Windows and Linux.
