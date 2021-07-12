@@ -99,13 +99,39 @@ machine that will be either wiped after use, or never connected to a network aga
 What hardware should this be run on? This software (or any other dice tool for generating a 24-word phrase) needs those
 entropy bits to compute the checksum. I will probably try to get it running it on an air-gapped Raspberry Pi Zero (non-W).
 These devices a) Don't cost an arm and a leg. and b) Have no wifi or Bluetooth. Dice2bip39 is now running on a 32bit ARM
-Raspberry Pi 3b board (and passes the self-tests), so it's 90% there. The Pi Zero is a lesser 32bit ARM (ARMv6) so this is
-still 'work in progress'. Will likely need to use the non-desktop version of Raspberry Pi OS. I'll probably just cmake configure
-on a different machine and move the content of the build directory over, and then hopefully just 'make' will work. For reference
+Raspberry Pi 3b board (and passes the self-tests), and on a Pi Zero (no W). The Pi Zero is a lesser 32bit ARM (ARMv6) processor. The non-desktop (lite) version of Raspberry Pi OS is being used.
 it has currently been run on:
 * Windows 10 (x64)
 * Ubuntu (x64)
 * Raspberry Pi 3b (ARM 32 bit)
+* Raspberry Pi Zero (no W)
+
+I'll clean up the following instructions a bit later, but to get it going on your Pi Zero:
+* Install RaspBerry Pi OS Lite (ssh off by default. Keep that way)
+* Login: pi PW: raspberry
+* passwd             // Change password to something better than raspberry.
+* sudo apt-get update
+* sudo apt-get install git
+* sudo apt-get install cmake
+* I suggest only grabbing tagged branches that have been released in github. You can check for a later release version there.
+* git clone --depth 1 --branch v0.9.3 https://github.com/bluescan/dice2bip39
+* If you just want the latest, use: git clone https://github.com/bluescan/dice2bip39
+* cd dice2bip39
+* mkdir build
+* cd build
+* cmake ..
+* OPTIONAL if you want faster compile times. The zero is slow: cmake .. -DCMAKE_BUILD_TYPE=Debug
+* UNPLUG ETHERNET CABLE
+* make
+* ./dice2bip39
+
+That's it. If you want it to autostart after entering your pi password next time:
+* cd ~
+* nano .bashrc
+* Add a line to the bottom: ./dice2bip39/build/dice2bip39
+* Ctrl-X to exit (hit Y to save the file)
+* sudo shotdown -r now   // To restart and test it.
+* Do not add the program to rc.local. Command line input is not initialized that early in the boot sequence.
 
 ### Building
 It's a cmake C++ project. Install cmake and Visual Studio Code. Open the dice2bip39 directory VS Code. Same instructions for Windows and Linux.
