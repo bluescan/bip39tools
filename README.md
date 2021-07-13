@@ -1,7 +1,7 @@
 # dice2bip39
 Generate a valid BIP-39 mnemonic using dice.
 
-### Introduction
+## Introduction
 This C++ software is for generating a valid BIP-39 mnemonic of 12, 15, 18, 21 or 24 words in cases where a user
 would rather generate their own entropy instead of relying on an unknown or otherwise opaque randomness source. This tool
 uses physical dice for the source of randomness. Generation of 12, 15, 18, 21, and 24 word mnemonics has been 
@@ -9,7 +9,7 @@ tested against https://iancoleman.io/bip39/. A self-test option checks a number 
 There are 3 different methods of processing dice rolls, all of which are secure and easy to understand. The third
 method allows a loaded die to be used, but it takes many more rolls to eliminate the bias.
 
-### Entropy Generation
+## Entropy Generation
 Depending of the number and type of dice you have, different methods of generating random bits are
 available. 12 words gets you 128 bits of entropy, 15 words -> 160 bits, 18 words -> 192 bits, 21 words -> 224 bits,
 and 24 words -> 256 bits of entropy.
@@ -40,7 +40,7 @@ the bias is rolling the die more times. Each 2 rolls (of the same biased die) yi
 approx 1/6 of the time (when the two rolls match, you can expect 2*(256 + (256/6)) = 597 individual rolls to generate a
 24-word (256 bit) mnemonic.
 
-### BIP-39 Considerations
+## BIP-39 Considerations
 
 BIP-39 is specified here https://github.com/bitcoin/bips/blob/master/bip-0039.mediawiki
 
@@ -85,7 +85,7 @@ Final note. I have perhaps been too much of a critic. BIP-39 is great and I'm gl
 consecutive multiples of 32 (160, 192, 224, and 256) end up being divisible by 11 after adding the multiple divided
 by 32 is 'pretty neat'.
 
-### Self Tests
+## Self Tests
 A good number of SHA-256 vectors from NIST are tested. Test vectors for BIP-39 are from Trezor's GitHub site. The
 sources of the test vectors are:
 1. https://github.com/trezor/python-mnemonic/blob/master/vectors.json
@@ -94,14 +94,14 @@ sources of the test vectors are:
 4. https://csrc.nist.gov/CSRC/media/Projects/Cryptographic-Standards-and-Guidelines/documents/examples/SHA2_Additional.pdf
 5. https://csrc.nist.gov/Projects/Cryptographic-Algorithm-Validation-Program/Secure-Hashing	(FIPS 180-4 ByteTestVector)
 
-### Mnemonic Phrase Language
+## Mnemonic Phrase Language
 Supported languages for the generated word list are: English, Czech, Portuguese, Italian, French, Spanish, Japanese, Korean, Chinese_Simplified,
 Chinese_Traditional. These are all the sanctioned lists available (10) at the time this tool was created.
 For languages with special characters (French and up), this tool provides the option to save the word-list to a file so you
 can read them in a good utf-8 text editor afterwards. While I don't recommend it, if you're running on a fully air-gapped
 machine that will be either wiped after use, or never connected to a network again, it should be fine.
 
-### Hardware Setup
+## Hardware Setup
 What hardware should this be run on? This software (or any other dice tool for generating a 24-word phrase) needs those
 entropy bits to compute the checksum. A good solution is using an air-gapped Raspberry Pi Zero (non-W).
 These devices a) Don't cost an arm and a leg. and b) Have no wifi or Bluetooth. Dice2bip39 is now running on a 32-bit ARM
@@ -113,7 +113,7 @@ Dice2Bip39 has currently been run on:
 * Raspberry Pi 3b (ARM 32 bit)
 * Raspberry Pi Zero (no W)
 
-# Setup on Raspberry Pi Zero
+### Setup on Raspberry Pi Zero
 The hardware you will need is:
 1. A RaspBerry Pi Zero.
 2. A Wired Keyboard.
@@ -158,10 +158,10 @@ The default keyboard for me was GB not US. You may need to change the layout via
 You now have an offline device to generate secure wallet seed phrases. Either destroy the SD card when you're done and keep the Pi for other
 stuff, or never connect it to a network again and store it in a safe or something.
 
-### Building
+## Building
 It's a cmake C++ project. Install cmake and Visual Studio Code. Open the dice2bip39 directory VS Code. Same instructions for Windows and Linux.
 
-### Running
+## Running
 Type dice2bip39 from a command prompt or shell. The command-line options control the amount of ouput spew.
 * ***dice2bip39 -c***
   For a concise level of output.
