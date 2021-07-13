@@ -7,7 +7,7 @@ would rather generate their own entropy instead of relying on an unknown or othe
 uses physical dice for the source of randomness. Generation of 12, 15, 18, 21, and 24 word mnemonics has been 
 tested against https://iancoleman.io/bip39/. A self-test option checks a number of vectors for both SHA-256 and BIP39.
 There are 3 different methods of processing dice rolls, all of which are secure and easy to understand. The third
-method allows a loaded die to be used, but it takes quite a few more rolls since the bias is eliminated.
+method allows a loaded die to be used, but it takes many more rolls to eliminate the bias.
 
 ### Entropy Generation
 Depending of the number and type of dice you have, different methods of generating random bits are
