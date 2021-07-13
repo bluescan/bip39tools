@@ -22,10 +22,8 @@
 #include <Foundation/tBitField.h>
 #include <System/tPrint.h>
 #include <System/tFile.h>
-#ifdef DEV_AUTO_GENERATE
-#include <Math/tRandom.h>
-#include <System/tTime.h>
-#endif
+#include <Math/tRandom.h>		// Only used to overwrite entropy memory when we're done with it.
+#include <System/tTime.h>		// Only used to overwrite entropy memory when we're done with it.
 #include "WordList_english.h"
 #include "WordList_czech.h"
 #include "WordList_portuguese.h"
@@ -66,24 +64,32 @@ namespace Bip
 	#ifdef DEV_GEN_WORDLIST
 	void GenerateWordListHeaders();
 	#endif
+
 	int InputInt();				// Returns -1 if couldn't read an integer >= 0.
+	int InputRanged(const char* question, std::function< bool(int) > inRange, int defaultVal = -1, int* inputCount = nullptr);
+
 	void ComputeWordsFromEntropy(const char* words[], int numWords);
+	void ClearState();
 
 	const char* Languages[]		= { "english", "czech", "portuguese", "italian", "french", "spanish", "japanese", "korean", "chinese_simplified", "chinese_traditional" };
 	enum class Language       	  {  English,   Czech,   Portuguese,   Italian,   French,   Spanish,   Japanese,   Korean,   Chinese_Simplified,   Chinese_Traditional  };
 	const int NumLanguages		= sizeof(Languages)/sizeof(*Languages);
-	Language CurrentLanguage	= Language::English;
-	typedef const char* WordListType[2048];
-	WordListType* WordList = nullptr;
+	typedef const char*			WordListType[2048];
 
 	uint64 ChConc = tSystem::tChannel_Verbosity0;
 	uint64 ChNorm = tSystem::tChannel_Verbosity1;
 	uint64 ChVerb = tSystem::tChannel_Verbosity2;
 
+	//
+	// State.
+	//
+	Language CurrentLanguage	= Language::English;
+	WordListType* WordList		= nullptr;
 	int NumMnemonicWords		= 0;
 	int NumEntropyBitsNeeded	= 0;
 	int NumEntropyBitsGenerated	= 0;
 	int RollCount				= 1;
+
 	tbit256 Entropy;
 };
 
@@ -363,6 +369,29 @@ bool Bip::SelfTest()
 }
 
 
+void Bip::ClearState()
+{
+	tPrintf(ChVerb, "Erasing Memory\n");
+
+	CurrentLanguage			= Language::English;
+	WordList				= nullptr;
+	NumMnemonicWords		= 0;
+	NumEntropyBitsNeeded	= 0;
+	NumEntropyBitsGenerated	= 0;
+	RollCount				= 1;
+
+	// We're going to overwrite the entropy memory a few times here to protect against hardware snooping
+	// and memory persistence. Entropy is declared volatile. @todo Check asm for Clang, GCC, and MSVC.
+	volatile uint32* entropy = &Entropy.GetElement(0);
+	int numElems = Entropy.GetNumElements();
+	for (int e = 0; e < numElems; e++) entropy[e] = 0x00000000;
+	for (int e = 0; e < numElems; e++) entropy[e] = tMath::tRandom::tGetBits();
+	for (int e = 0; e < numElems; e++) entropy[e] = 0xFFFFFFFF;
+	for (int e = 0; e < numElems; e++) entropy[e] = tMath::tRandom::tGetBits();
+	Entropy.Clear();
+}
+
+
 int Bip::InputInt()
 {
 	int val = -1;
@@ -373,6 +402,39 @@ int Bip::InputInt()
 		return val;
 
 	return -1;
+}
+
+
+int Bip::InputRanged(const char* question, std::function< bool(int) > inRange, int defaultVal, int* inputCount)
+{
+	int val = -1;
+	const int maxTries = 100;
+	int tries = 0;
+	do
+	{
+		tPrintf("%s", question);
+		val = Bip::InputInt();
+		tries++;
+
+		if ((val == -1) && (defaultVal >= 0))
+		{
+			tPrintf("Using Default %d\n", defaultVal);
+			val = defaultVal;
+			break;
+		}
+	}
+	while (!inRange(val) && (tries < maxTries));
+
+	if ((tries >= maxTries) && !inRange(val))
+	{
+		tPrintf("Too many ill-formed inputs. Giving up.\n");
+		exit(1);
+	}
+
+	if (inputCount)
+		(*inputCount)++;
+
+	return val;
 }
 
 
@@ -433,26 +495,13 @@ void Bip::GenerateWordListHeaders()
 
 void Bip::QueryUserSetLanguage()
 {
-	const char* langOpts = "[0, 1, 2, 3, 4, 5, 6, 7, 8, 9]: ";
-
 	tPrintf("What language for the mnemonic phrase?\n");
 	for (int l = 0; l < NumLanguages; l++)
 		tPrintf("%d=%s\n", l, Languages[l]);
 
-	int lang = -1;
-	do
-	{
-		tPrintf("Language: %s", langOpts);
-		lang = InputInt();
-		if (lang == -1)
-		{
-			lang = 0;
-			break;
-		}
-	}
-	while ((lang < 0) || (lang > 9));
-
+	int lang = Bip::InputRanged("Language [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]: ", [](int l) -> bool { return (l >= 0) && (l <= 9); }, 0);
 	tPrintf("Language Set To %s\n", Languages[lang]);
+
 	CurrentLanguage = Language(lang);
 	switch (CurrentLanguage)
 	{
@@ -478,9 +527,10 @@ void Bip::QueryUserSetLanguage()
 			"such as NSimSun or MS Gothic. In Windows command you will need to run\n"
 			"\"chcp 65001\" before running this software. In PowerShell you will need to run\n"
 			"\"[Console]::OutputEncoding = [System.Text.Encoding]::UTF8\" before running.\n"
+			"In bash just set the font correctly.\n"
 			"\n"
 			"After completing your dice rolls you will be given the option to save your\n"
-			"mnemonic phrase to a file. Many text editore read utf-8 very well, like VSCode.\n"
+			"mnemonic phrase to a file. Many text editors like VS Code read utf-8 very well.\n"
 			"Made sure to wipe the file afterwards and only run this SW on an air-gapped\n"
 			"machine.\n"
 		);
@@ -490,31 +540,20 @@ void Bip::QueryUserSetLanguage()
 
 int Bip::QueryUserNumWords()
 {
-	tPrintf(ChNorm | ChVerb, "How many words do you want in your mnemonic phrase?\n");
-	tPrintf(ChNorm | ChVerb, "Valid answers are 0, 12, 15, 18, 21, and 24. Enter 0 for self-test.\n");
-	tPrintf(ChNorm | ChVerb, "Most recovery wallets will accept 12 or 24. Press Enter after answering.\n");
+	tPrintf(ChNorm | ChVerb, "How many words for your mnemonic phrase? Enter 0 for self-test.\n");
+	int numWords = Bip::InputRanged
+	(
+		"Number of Words [0, 12, 15, 18, 21, 24]: ",
+		[](int w) -> bool { return (w == 0) || (w == 12) || (w == 15) || (w == 18) || (w == 21) || (w == 24); },
+		24
+	);
 
-	const char* wordOpts = "[0, 12, 15, 18, 21, 24]: ";
-
-	int numWords = -1;
-	do
-	{
-		tPrintf("Number of Words %s", wordOpts);
-		numWords = InputInt();
-	}
-	while ((numWords != 0) && (numWords != 12) && (numWords != 15) && (numWords != 18) && (numWords != 21) && (numWords != 24));
 	return numWords;
 }
 
 
 Bip::Method Bip::QueryUserMethod()
 {
-	#ifdef DEV_AUTO_GENERATE
-	const char* methodOpts = "[0, 1, 2, 3]: ";
-	#else
-	const char* methodOpts = "[1, 2, 3]: ";
-	#endif
-
 	tPrintf(ChVerb | ChNorm, "What method should be used to generate your phrase?\n\n");
 	#ifdef DEV_AUTO_GENERATE
 	tPrintf(ChVerb | ChNorm, "0) DevAuto\n   Do not use. For development only.\n\n");
@@ -532,36 +571,31 @@ Bip::Method Bip::QueryUserMethod()
 		"   If you have two Casino-quality 6-sided dice that are evenly balanced and\n"
 		"   have no bias, this method generates a maximum of 5 bits for each roll of two\n"
 		"   dice. This is because you can treat the two rolls as a two-digit base-6\n"
-		"   number. 6^2 is 36 and 32 is the next lower power of two so each double-roll\n"
-		"   generates 5 bits. When rolling the 2 dice, enter the leftmost one first.\n"
-		"   Expect approximately 58 double-rolls for a 24-word phrase.\n"
+		"   number. 6^2 is 36 and 32 is the next lower power-of-two so each double-roll\n"
+		"   generates 5 bits. When rolling the 2 dice, enter the left-most one first.\n"
+		"   With re-rolls expect approximately 58 double-rolls for a 24-word phrase.\n"
+		"   You can also use this method with one die rolling it twice in a row.\n"
 		"\n"
 		"3) Extractor\n"
 		"   If you have a low-quality die or a suspected biased die use this bias-\n"
 		"   removing method. For the extremely paranoid, this 3rd method will also work\n"
-		"   with a good balanced die, removing any and all bias. The method is based on\n"
-		"   a Von Neumann extractor. You roll the the SAME die twice in a row. If roll 1\n"
+		"   with a balanced die, removing any and all bias. The method is based on\n"
+		"   a Von Neumann extractor. You roll the the same die twice in a row. If roll 1\n"
 		"   is lower than roll 2, a 0 is generated. If roll 1 is larger than roll 2, a 1\n"
 		"   is generated. If equal, re-roll. You can expect approximately 597 individual\n"
 		"   rolls to generate a 24-word mnemonic.\n"
 	);
 
-	int method = -1;
-	do
-	{
+	int method = Bip::InputRanged
+	(
 		#ifdef DEV_AUTO_GENERATE
-		tPrintf("Method: 0=Auto 1=Simple 2=Parallel 3=Extractor %s", methodOpts);
+		"Method 0=Auto 1=Simple 2=Parallel 3=Extractor [0, 1, 2, 3]: ",
+		[](int m) -> bool { return (m >= 0) && (m <= 3); }
 		#else
-		tPrintf("Method: 1=Simple 2=Parallel 3=Extractor %s", methodOpts);
+		"Method 1=Simple 2=Parallel 3=Extractor [1, 2, 3]: ",
+		[](int m) -> bool { return (m >= 1) && (m <= 3); }
 		#endif
-
-		method = InputInt();
-	}
-	#ifdef DEV_AUTO_GENERATE
-	while ((method != 0) && (method != 1) && (method != 2) && (method != 3));
-	#else
-	while ((method != 1) && (method != 2) && (method != 3));
-	#endif
+	);
 
 	return Method(method);
 }
@@ -572,11 +606,15 @@ void Bip::QueryUserEntropyBits_Simple()
 	int roll = 0;
 	do
 	{
-		tPrintf("Roll#%03d [1, 2, 3, 4, 5, 6]: ", RollCount);
-		roll = InputInt();
-		RollCount++;
+		char rollText[64]; tsPrintf(rollText, "Roll#%03d [1, 2, 3, 4, 5, 6]: ", RollCount);
+		roll = Bip::InputRanged
+		(
+			rollText,
+			[](int r) -> bool { return (r >= 0) && (r <= 6); },
+			-1, &RollCount
+		);
 	}
-	while ((roll < 1) || (roll > 4));
+	while (roll >= 5);
 
 	tAssert((NumEntropyBitsNeeded - NumEntropyBitsGenerated) >= 2);
 	int bitIndex = NumEntropyBitsNeeded-NumEntropyBitsGenerated-1;
@@ -605,32 +643,20 @@ void Bip::QueryUserEntropyBits_Simple()
 
 void Bip::QueryUserEntropyBits_Parallel()
 {
-	uint32 base36 = 0;
+	uint32 base6 = 0;
 	do
 	{
-		int roll1 = 0;
-		do
-		{
-			tPrintf("Roll#%03d Left die  [1, 2, 3, 4, 5, 6]: ", RollCount);
-			roll1 = InputInt();
-		}
-		while ((roll1 < 1) || (roll1 > 6));
+		char rollLText[64]; tsPrintf(rollLText, "Roll#%03d Left Die  [1, 2, 3, 4, 5, 6]: ", RollCount);
+		int rollL = Bip::InputRanged(rollLText, [](int r) -> bool { return (r >= 1) && (r <= 6); });
 
-		int roll2 = 0;
-		do
-		{
-			tPrintf("Roll#%03d Right die [1, 2, 3, 4, 5, 6]: ", RollCount);
-			roll2 = InputInt();
-		}
-		while ((roll2 < 1) || (roll2 > 6));
+		char rollRText[64]; tsPrintf(rollRText, "Roll#%03d Right Die [1, 2, 3, 4, 5, 6]: ", RollCount);
+		int rollR = Bip::InputRanged(rollRText, [](int r) -> bool { return (r >= 1) && (r <= 6); });
+
 		RollCount++;		
-		roll1--;
-		roll2--;
-
-		base36 = (roll1*6) + roll2;
-		tPrintf(ChVerb, "Base36 Number: %d\n", base36);
+		base6 = ((rollL-1)*6) + (rollR-1);
+		tPrintf(ChVerb, "Base6 Value: %d\n", base6);
 	}
-	while (base36 >= 32);
+	while (base6 >= 32);
 
 	// Since the number of bits required may not be divisible by 5, make sure we don't go over.
 	int bitCount = NumEntropyBitsNeeded-NumEntropyBitsGenerated;
@@ -639,7 +665,7 @@ void Bip::QueryUserEntropyBits_Parallel()
 	if (bitCount > 5) bitCount = 5;
 	for (int b = 0; b < bitCount; b++)
 	{
-		bool bit = (base36 & (1 << b)) ? true : false;
+		bool bit = (base6 & (1 << b)) ? true : false;
 		Entropy.SetBit(bitIndex-b, bit);
 	}
 
@@ -654,24 +680,15 @@ void Bip::QueryUserEntropyBits_Extractor()
 
 	do 
 	{
-		do
-		{
-			tPrintf("Roll#%03d [1, 2, 3, 4, 5, 6]: ", RollCount);
-			roll1 = InputInt();
-			RollCount++;
-		}
-		while ((roll1 < 1) || (roll1 > 6));
+		char roll1Text[64]; tsPrintf(roll1Text, "Roll#%03d [1, 2, 3, 4, 5, 6]: ", RollCount);
+		roll1 = Bip::InputRanged(roll1Text, [](int r) -> bool { return (r >= 1) && (r <= 6); }, -1, &RollCount);
 
-		do
-		{
-			tPrintf("Roll#%03d [1, 2, 3, 4, 5, 6]: ", RollCount);
-			roll2 = InputInt();
-			RollCount++;
-		}
-		while ((roll2 < 1) || (roll2 > 6));
+		char roll2Text[64]; tsPrintf(roll2Text, "Roll#%03d [1, 2, 3, 4, 5, 6]: ", RollCount);
+		roll2 = Bip::InputRanged(roll2Text, [](int r) -> bool { return (r >= 1) && (r <= 6); }, -1, &RollCount);
 	}
 	while (roll1 == roll2);
 	tAssert(roll1 != roll2);
+
 	bool bit = (roll1 < roll2) ? false : true;
 	tPrintf(ChVerb, "Generated a %s\n", bit ? "1" : "0");
 
@@ -685,7 +702,6 @@ void Bip::QueryUserEntropyBits_Extractor()
 #ifdef DEV_AUTO_GENERATE
 void Bip::QueryUserEntropyBits_DevGen()
 {
-	tMath::tRandom::DefaultGenerator.SetSeed( uint64(tSystem::tGetHardwareTimerCount()) );
 	tAssert((NumEntropyBitsNeeded - NumEntropyBitsGenerated) >= 32);
 	int bitIndex = NumEntropyBitsNeeded-NumEntropyBitsGenerated-1;
 
@@ -785,7 +801,7 @@ void Bip::ComputeWordsFromEntropy(const char* words[], int numWords)
 		words[w] = (*WordList)[wordIndex];
 	}
 
-	// Before exiting let's clear the entropy variables.
+	// Before leaving let's clear the entropy variables.
 	// @todo Make sure this can't get optimized away.
 	for (int w = 0; w < numWords; w++)
 		wordIndices[w] = -1;
@@ -809,8 +825,9 @@ bool Bip::QueryUserSave(const char* words[24], int numWords)
 			"Since you chose a language that has special characters, do you want\n"
 			"to save it as \"%s\"\n", wordSaveFile
 		);
-		tPrintf("Save to %s? 0=No 1=Yes [0, 1]: ", wordSaveFile);
-		int doSave = InputInt();
+
+		char saveText[64]; tsPrintf(saveText, "Save to %s? 0=No 1=Yes [0, 1]: ", wordSaveFile);
+		int doSave = Bip::InputRanged(saveText, [](int s) -> bool { return (s == 0) || (s == 1); });
 		if (doSave == 1)
 		{
 			tPrintf("Saving words.\n");
@@ -832,14 +849,18 @@ bool Bip::QueryUserSave(const char* words[24], int numWords)
 
 int main(int argc, char** argv)
 {
+	// The random number generator is ONLY used to clear the entropy memory so it's not hanging around in RAM.
+	tMath::tRandom::DefaultGenerator.SetSeed( uint64(tSystem::tGetHardwareTimerCount()) );
+
 	tCommand::tParse(argc, argv);
-	tSystem::tSetChannels(tSystem::tChannel_Systems | Bip::ChNorm);
+	tSystem::tChannel channels = tSystem::tChannel_Systems | Bip::ChNorm;
 	if (VerboseOutput)
-		tSystem::tSetChannels(tSystem::tChannel_Systems | Bip::ChVerb);
+		channels = tSystem::tChannel_Systems | Bip::ChVerb;
 	else if (NormalOutput)
-		tSystem::tSetChannels(tSystem::tChannel_Systems | Bip::ChNorm);
+		channels = tSystem::tChannel_Systems | Bip::ChNorm;
 	else if (ConciseOutput)
-		tSystem::tSetChannels(tSystem::tChannel_Systems | Bip::ChConc);
+		channels = tSystem::tChannel_Systems | Bip::ChConc;
+	tSystem::tSetChannels(channels);
 
 	if (ConciseOutput)
 		tPrintf("dice2bip39 V%d.%d.%d\n", Version::Major, Version::Minor, Version::Revision);
@@ -857,9 +878,11 @@ ChooseLanguage:
 	int numWords = Bip::QueryUserNumWords();
 	if (numWords == 0)
 	{
+		// Since we want to control the output for the self-tests, we need to modify and then restore the print channels.
 		tSystem::tSetChannels(tSystem::tChannel_Systems);
 		bool pass = Bip::SelfTest();
 		tPrintf("Seft-Test Result: %s\n", pass ? "PASS" : "FAIL");
+		tSystem::tSetChannels(channels);
 	}
 	else
 	{
@@ -913,22 +936,13 @@ ChooseLanguage:
 			tPrintf("You saved results to a file. If you go again and save it will be overwritten.\n");
 	}
 
-	// Go again?
-	const char* againOpts = "[0, 1]: ";
-	int again = -1;
-	do
-	{
-		tPrintf("Go Again? 0=No 1=Yes %s", againOpts);
-		again = Bip::InputInt();
-	}
-	while ((again != 0) && (again != 1));
+	// We're done let's clear the entropy variables.
+	Bip::ClearState();
 
+	// Generate Another?
+	int again = Bip::InputRanged("Generate Another? 0=No 1=Yes [0, 1]: ", [](int a) -> bool { return (a == 0) || (a == 1); });
 	if (again == 1)
 		goto ChooseLanguage;
 
-	// Before exiting let's clear the entropy variables.
-	// @todo Make sure this can't get optimized away.
-	tPrintf(Bip::ChVerb, "Erasing Memory\n");
-	Bip::Entropy.Clear();	
 	return 0;
 }
