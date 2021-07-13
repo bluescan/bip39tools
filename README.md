@@ -2,34 +2,33 @@
 Generate a valid BIP-39 mnemonic using dice.
 
 ### Introduction
-This software is for generating a valid BIP-39 mnemonic of 12, 15, 18, 21 or 24 words in cases where a user
+This C++ software is for generating a valid BIP-39 mnemonic of 12, 15, 18, 21 or 24 words in cases where a user
 would rather generate their own entropy instead of relying on an unknown or otherwise opaque randomness source. This tool
 uses physical dice for the source of randomness. Generation of 12, 15, 18, 21, and 24 word mnemonics has been 
-tested against https://iancoleman.io/bip39/. There are also a number of vectors for both SHA-256 and BIP39 that
-are tested when running the 'self-test'. There are 3 different methods of rolling your dice, all of which are secure
-and easy to understand. The third method even allows a loaded die to be used, but it takes quite a few more rolls
-since the bias is eliminated.
+tested against https://iancoleman.io/bip39/. A self-test option checks a number of vectors for both SHA-256 and BIP39.
+There are 3 different methods of processing dice rolls, all of which are secure and easy to understand. The third
+method allows a loaded die to be used, but it takes quite a few more rolls since the bias is eliminated.
 
 ### Entropy Generation
-Depending of the number and type of dice you have, different methods of generating random bits are used.
-Note that 12 words represents 128 bits of entropy, 15 words -> 160 bits, 18 words -> 192 bits, 21 words -> 224 bits, and 24 words -> 256 bits of entropy.
+Depending of the number and type of dice you have, different methods of generating random bits are
+available. 12 words gets you 128 bits of entropy, 15 words -> 160 bits, 18 words -> 192 bits, 21 words -> 224 bits,
+and 24 words -> 256 bits of entropy.
 
 * ***Method 1 - Simple :*** If you have one Casino-quality 6-sided die that is evenly balanced and has no bias, this method
-generates a max of 2 bits per roll. A roll of 5 or 6 means you need to discard and re-roll. You can expect to
+generates a max of 2 bits per roll. A roll of 5 or 6 means you need to discard and re-roll (1/3 of the time). You can expect to
 perform 128 + 43 = 171 rolls to gernerate a 24-word mnemonic. The actual number is slightly higher (it's a limit) because
 even re-rolls may not be successful.
 
 * ***Method 2 - Parallel :*** If you have two Casino-quality 6-sided dice that are evenly balanced and have no bias, this
 method generates a max of 5 bits for each roll of two dice. This is because you can treat the two rolls as a double-digit
-base 6 number -- [0,5][0,5] which is a value from 0 to 35. 32 is the next lower power of two (2^5 = 32 so 5 bits), so each
-double-roll generates 5 bits.
-Only 4 combinations of the 36 states would require a re-roll (1 out of 9). In terms of number of 2-die rolls to generate a 24 word
-mnemonic, 256 / 5 = 52. Including one level of re-rolls, you can expect roughly 52 + 52/9 = 58 double-rolls. It is slightly
-higher for the same reason as before. Note, the software does not support 3 dice. It's too far from the next lower power
-of two. You could use one die and every two rolls generate the 2-digit base-6 number. That's only 116 rolls so is better than method 1,
-but you don't get to see the immediate progression after each roll, so the simpler one-die option is being kept. When rolling
-two dice at the same time, enter the leftmost die first. Be consistent, you don't want to subconsciously order them
-smaller to larger or some such.
+base 6 number -- [0,5][0,5] which is a value from 0 to 35. 32 is the next lower power-of-two (2^5 = 32 so 5 bits), so each
+double-roll generates 5 bits. Only 4 combinations of the 36 states would require a re-roll (1 out of 9). In terms of number
+of 2-die rolls to generate a 24-word mnemonic, 256 / 5 = 52. Including one level of re-rolls, you can expect roughly
+52 + 52/9 = 58 double-rolls. It is slightly higher for the same reason as before. Note, the software does not support 3 dice.
+It's too far from the next lower power-of-two. You can also use one die and every two rolls generate the 2-digit
+base-6 number. That's only 116 rolls so is better than method 1, but you don't get to see the immediate progression results
+each roll, so the simpler one-die option is being kept. When rolling two dice at the same time, enter the left-most die
+first. Be consistent, you don't want to subconsciously order them smaller to larger or some such.
 
 * ***Method 3 - Extractor :*** If you have a low-quality die or a suspected biased die all is not lost. Indeed, for the
 extremely paranoid, this 3rd method will also work with a good balanced die, removing any possible bias. The algorithm is based
@@ -37,9 +36,9 @@ on the 2019 paper by "Giulio Morina and Krzysztof Latuszynski". Look in the refe
 I'm referring to as 'Extractor' (Algorithm 1 in the paper), is based on a Von Neumann (1951) extractor. It is simple and provably
 removes skew/bias. Roll the same die twice. If roll 1 is less than roll 2, generate a binary 0. If roll 1 is greater, generate a 1.
 If equal, re-roll. All that is required is that the die yields all of the numbers some of the time. The price you pay for removing
-the bias is rolling the die more times. Each 2 rolls (of the _same_ biased die) yields only a single bit. With re-rolls approx 1/6 of
-the time when the two rolls match (and no, it's not 1/36 because any number can match) you can expect 2*(256 + (256/6)) = 597 individual
-rolls to generate a 24-word (256 bit) mnemonic.
+the bias is rolling the die more times. Each 2 rolls (of the same biased die) yields only a single bit. With re-rolls
+approx 1/6 of the time (when the two rolls match, you can expect 2*(256 + (256/6)) = 597 individual rolls to generate a
+24-word (256 bit) mnemonic.
 
 ### BIP-39 Considerations
 
@@ -87,47 +86,67 @@ consecutive multiples of 32 (160, 192, 224, and 256) end up being divisible by 1
 by 32 is 'pretty neat'.
 
 ### Self Tests
-A good number of SHA-256 vectors from NIST are tested (URLs to follow). Test vectors for BIP-39 from Trezor's GitHub (https://github.com/trezor/python-mnemonic/blob/master/vectors.json) are also
-confirmed when running the self test.
+A good number of SHA-256 vectors from NIST are tested. Test vectors for BIP-39 are from Trezor's GitHub site. The
+sources of the test vectors are:
+1. https://github.com/trezor/python-mnemonic/blob/master/vectors.json
+2. https://www.nist.gov/itl/ssd/software-quality-group/nsrl-test-data
+3. https://csrc.nist.gov/CSRC/media/Projects/Cryptographic-Standards-and-Guidelines/documents/examples/SHA256.pdf
+4. https://csrc.nist.gov/CSRC/media/Projects/Cryptographic-Standards-and-Guidelines/documents/examples/SHA2_Additional.pdf
+5. https://csrc.nist.gov/Projects/Cryptographic-Algorithm-Validation-Program/Secure-Hashing	(FIPS 180-4 ByteTestVector)
 
 ### Mnemonic Phrase Language
-Supported languages for the generated word list are: English, Czech, Portuguese, Italian, French, Spanish, Japanese, Korean, Chinese_Simplified, Chinese_Traditional. These are all the sanctioned lists available (10) at the time this tool was created.
+Supported languages for the generated word list are: English, Czech, Portuguese, Italian, French, Spanish, Japanese, Korean, Chinese_Simplified,
+Chinese_Traditional. These are all the sanctioned lists available (10) at the time this tool was created.
 For languages with special characters (French and up), this tool provides the option to save the word-list to a file so you
 can read them in a good utf-8 text editor afterwards. While I don't recommend it, if you're running on a fully air-gapped
 machine that will be either wiped after use, or never connected to a network again, it should be fine.
 
 ### Hardware Setup
 What hardware should this be run on? This software (or any other dice tool for generating a 24-word phrase) needs those
-entropy bits to compute the checksum. I will probably try to get it running it on an air-gapped Raspberry Pi Zero (non-W).
-These devices a) Don't cost an arm and a leg. and b) Have no wifi or Bluetooth. Dice2bip39 is now running on a 32bit ARM
-Raspberry Pi 3b board (and passes the self-tests), and on a Pi Zero (no W). The Pi Zero is a lesser 32bit ARM (ARMv6) processor. The non-desktop (lite) version of Raspberry Pi OS is being used.
-it has currently been run on:
+entropy bits to compute the checksum. A good solution is using an air-gapped Raspberry Pi Zero (non-W).
+These devices a) Don't cost an arm and a leg. and b) Have no wifi or Bluetooth. Dice2bip39 is now running on a 32-bit ARM
+Raspberry Pi 3b board (and passes the self-tests), and on a Pi Zero (no W). The Pi Zero is a lesser 32-bit ARM (ARMv6) processor.
+The non-desktop (lite) version of Raspberry Pi OS is being used.
+Dice2Bip39 has currently been run on:
 * Windows 10 (x64)
 * Ubuntu (x64)
 * Raspberry Pi 3b (ARM 32 bit)
 * Raspberry Pi Zero (no W)
 
-I'll clean up the following instructions a bit later, but to get it going on your Pi Zero:
-* Install RaspBerry Pi OS Lite (ssh off by default. Keep that way)
-* Login: pi PW: raspberry
-* passwd             // Change password to something better than raspberry.
-* sudo apt-get update
-* sudo apt-get install git
-* sudo apt-get install cmake
-* I suggest only grabbing tagged branches that have been released in github. You can check for a later release version there.
-* git clone --depth 1 --branch v0.9.3 https://github.com/bluescan/dice2bip39
-* If you just want the latest, use: git clone https://github.com/bluescan/dice2bip39
-* cd dice2bip39
-* mkdir build
-* cd build
-* cmake ..
-* OPTIONAL if you want faster compile times. The zero is slow: cmake .. -DCMAKE_BUILD_TYPE=Debug
+# Setup on Raspberry Pi Zero
+The hardware you will need is:
+1. A RaspBerry Pi Zero.
+2. A Wired Keyboard.
+3. A (powered) USB Hub and a converter to plug it into a micro-USB port.
+4. A USB to Ethernet Dongle (I have one from IOGear that works fine).
+5. A Mini HDMI to Regular HDMI Cable.
+6. A micro-USB power supply.
+7. A monitor that accepts HDMI in.
+
+Most of the above hardware can be bought as a kit from somewhere like CanaKit. The procedure is as follows.
+1. Connect all the hardware up. Do not plug in the ethernet cable.
+2. Install RaspBerry Pi OS Lite 32-bit using the Raspberry Pi Imager. It will prep the micro-SD card for you. By default ssh will be disabled. Keep it disabled.
+4. Login: pi Password: raspberry
+5. passwd             (Change password to something better than raspberry)
+6. PLUG IN ETHERNET CABLE
+7. sudo apt-get update
+8. sudo apt-get install git
+9. sudo apt-get install cmake
+10. I suggest only grabbing tagged branches that have been released in github. You can check for a later version under GitHub's releases link.
+11. Git clone --depth 1 --branch v0.9.4 https://github.com/bluescan/dice2bip39
+12. If you just want the latest, use: git clone https://github.com/bluescan/dice2bip39
+13. cd dice2bip39
+14. mkdir build
+15. cd build
+16. cmake ..           (If you want faster compile times. you could use: cmake .. -DCMAKE_BUILD_TYPE=Debug
 * UNPLUG ETHERNET CABLE
 * make
+
+Thats it. Run the program.
 * ./dice2bip39
 
-That's it. If you want it to autostart after entering your pi password next time:
-* cd ~
+If you want it to autostart after entering your pi password next time:
+* cd ~ (wip)
 * nano .bashrc
 * Add a line to the bottom: ./dice2bip39/build/dice2bip39
 * Ctrl-X to exit (hit Y to save the file)
