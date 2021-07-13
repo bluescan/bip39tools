@@ -138,20 +138,25 @@ Most of the above hardware can be bought as a kit from somewhere like CanaKit. T
 13. cd dice2bip39
 14. mkdir build
 15. cd build
-16. cmake ..           (If you want faster compile times. you could use: cmake .. -DCMAKE_BUILD_TYPE=Debug
-* UNPLUG ETHERNET CABLE
-* make
+16. cmake ..           (If you want faster compile times. you could use: cmake .. -DCMAKE_BUILD_TYPE=Debug)
+17. UNPLUG ETHERNET CABLE
+18. make
 
 Thats it. Run the program.
 * ./dice2bip39
 
-If you want it to autostart after entering your pi password next time:
-* cd ~ (wip)
-* nano .bashrc
-* Add a line to the bottom: ./dice2bip39/build/dice2bip39
-* Ctrl-X to exit (hit Y to save the file)
-* sudo shotdown -r now   // To restart and test it.
-* Do not add the program to rc.local. Command line input is not initialized that early in the boot sequence.
+If you want it to autostart after logging in from a fresh reboot next time:
+1. cd /home/pi
+2. nano .bashrc
+3. Add this line to the bottom: ./dice2bip39/build/dice2bip39
+4. Ctrl-X to exit (hit Y to save the file)
+5. sudo shutdown -r now   (To restart and test it)
+
+Do not add the program to rc.local. Command line input is not initialized that early in the boot sequence (plus, it's better to force a login).
+The default keyboard for me was GB not US. You may need to change the layout via 'sudo raspi-config' to US.
+
+You now have an offline device to generate secure wallet seed phrases. Either destroy the SD card when you're done and keep the Pi for other
+stuff, or never connect it to a network again and store it in a safe or something.
 
 ### Building
 It's a cmake C++ project. Install cmake and Visual Studio Code. Open the dice2bip39 directory VS Code. Same instructions for Windows and Linux.
