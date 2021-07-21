@@ -104,14 +104,14 @@ machine that will be either wiped after use, or never connected to a network aga
 ## Hardware Setup
 What hardware should this be run on? This software (or any other dice tool for generating a 24-word phrase) needs those
 entropy bits to compute the checksum. A good solution is using an air-gapped Raspberry Pi Zero (non-W).
-These devices a) Don't cost an arm and a leg. and b) Have no wifi or Bluetooth. Dice2bip39 is now running on a 32-bit ARM
-Raspberry Pi 3b board (and passes the self-tests), and on a Pi Zero (no W). The Pi Zero is a lesser 32-bit ARM (ARMv6) processor.
-The non-desktop (lite) version of Raspberry Pi OS is being used.
-Dice2Bip39 has currently been run on:
+These devices a) Don't cost an arm and a leg. and b) Have no wifi or Bluetooth. Dice2Bip39 has been compiled and passes
+all self-tests on the following platforms:
+
 * Windows 10 (x64)
 * Ubuntu (x64)
-* Raspberry Pi 3b (ARM 32 bit)
-* Raspberry Pi Zero (no W)
+* Raspberry Pi 3b (ARM32)
+* Raspberry Pi Zero No W (ARM32)
+* Raspberry Pi 4 (Running Ubuntu ARM64)
 
 ### Setup on Raspberry Pi Zero
 The hardware you will need is:
@@ -124,7 +124,7 @@ The hardware you will need is:
 7. A monitor that accepts HDMI in.
 
 Most of the above hardware can be bought as a kit from somewhere like CanaKit. The procedure is as follows.
-1. Connect all the hardware up. Do not plug in the ethernet cable.
+1. Connect all the hardware up. Do NOT plug in the ethernet cable yet.
 2. Install RaspBerry Pi OS Lite 32-bit using the Raspberry Pi Imager. It will prep the micro-SD card for you. By default ssh will be disabled. Keep it disabled.
 4. Login: pi Password: raspberry
 5. passwd             (Change password to something better than raspberry)
@@ -133,7 +133,7 @@ Most of the above hardware can be bought as a kit from somewhere like CanaKit. T
 8. sudo apt-get install git
 9. sudo apt-get install cmake
 10. I suggest only grabbing tagged branches that have been released in github. You can check for a later version under GitHub's releases link.
-11. Git clone --depth 1 --branch v0.9.4 https://github.com/bluescan/dice2bip39
+11. Git clone --depth 1 --branch v0.9.5 https://github.com/bluescan/dice2bip39
 12. If you just want the latest, use: git clone https://github.com/bluescan/dice2bip39
 13. cd dice2bip39
 14. mkdir build
