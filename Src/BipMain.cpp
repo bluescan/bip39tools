@@ -43,8 +43,16 @@ tCommand::tOption VerboseOutput	("Verbose output.",	'v',	"verbose");
 
 namespace Bip
 {
-	bool SelfTest();
 	void QueryUserSetLanguage();
+
+	int QueryUserMode();
+	void DoCreateMnemonic();
+	void DoCompleteLastWord();
+	void DoSelfTest(tSystem::tChannel);
+
+	//
+	// Create Mnemonic Functions.
+	//
 	int QueryUserNumWords();
 	int GetNumEntropyBits(int numWords);
 	int GetNumEntropyWords(int numBits);
@@ -60,6 +68,17 @@ namespace Bip
 	void QueryUserEntropyBits_DevGen();
 	#endif
 	bool QueryUserSave(const char* words[24], int numWords);	// Returns true if a file was saved.
+
+	//
+	// Complete Last Word Functions.
+	//
+	int QueryUserNumAvailableWords();
+	void QueryUserAvailableWords(tList<tStringItem>& wordList, int numWords);
+
+	//
+	// Self-Test Functions.
+	//
+	bool SelfTest();
 
 	#ifdef DEV_GEN_WORDLIST
 	void GenerateWordListHeaders();
@@ -495,7 +514,7 @@ void Bip::GenerateWordListHeaders()
 
 void Bip::QueryUserSetLanguage()
 {
-	tPrintf("What language for the mnemonic phrase?\n");
+	tPrintf("Language?\n");
 	for (int l = 0; l < NumLanguages; l++)
 		tPrintf("%d=%s\n", l, Languages[l]);
 
@@ -538,13 +557,27 @@ void Bip::QueryUserSetLanguage()
 }
 
 
+int Bip::QueryUserMode()
+{
+	tPrintf(ChNorm | ChVerb | ChConc, "Operation Mode? 0=Create 1=LastWords 2=Self-Test\n");
+	int mode = Bip::InputRanged
+	(
+		"Mode [0, 1, 2]: ",
+		[](int m) -> bool { return (m == 0) || (m == 1) || (m == 2); },
+		0
+	);
+
+	return mode;
+}
+
+
 int Bip::QueryUserNumWords()
 {
-	tPrintf(ChNorm | ChVerb, "How many words for your mnemonic phrase? Enter 0 for self-test.\n");
+	tPrintf(ChNorm | ChVerb, "How many words for your mnemonic phrase?\n");
 	int numWords = Bip::InputRanged
 	(
-		"Number of Words [0, 12, 15, 18, 21, 24]: ",
-		[](int w) -> bool { return (w == 0) || (w == 12) || (w == 15) || (w == 18) || (w == 21) || (w == 24); },
+		"Number of Words [12, 15, 18, 21, 24]: ",
+		[](int w) -> bool { return (w == 12) || (w == 15) || (w == 18) || (w == 21) || (w == 24); },
 		24
 	);
 
@@ -847,6 +880,103 @@ bool Bip::QueryUserSave(const char* words[24], int numWords)
 }
 
 
+int Bip::QueryUserNumAvailableWords()
+{
+	tPrintf(ChNorm | ChVerb, "How many words do you already have?\n");
+	int numAvailWords = Bip::InputRanged
+	(
+		"Number of Words [11, 14, 17, 20, 23]: ",
+		[](int w) -> bool { return (w == 11) || (w == 14) || (w == 17) || (w == 20) || (w == 23); },
+		23
+	);
+
+	return numAvailWords;
+}
+
+
+void Bip::QueryUserAvailableWords(tList<tStringItem>& wordList, int numWords)
+{
+	for (int w = 0; w < numWords; w++)
+	{
+		tPrintf("Enter Word %d: \n", w);
+	}
+}
+
+
+void Bip::DoCreateMnemonic()
+{
+	int numWords = Bip::QueryUserNumWords();
+	tPrintf("A %d-word mnemonic will be created.\n", numWords);
+
+	Bip::NumEntropyBitsNeeded = Bip::GetNumEntropyBits(numWords);
+	tPrintf(Bip::ChVerb, "Your %d-word mnemonic phrase will contain %d bits of entropy.\n", numWords, Bip::NumEntropyBitsNeeded);
+
+	Bip::Method method = Bip::QueryUserMethod();
+	tPrintf("Using %s method.\n", Bip::MedthodNames[ int(method) ]);
+
+	Bip::NumEntropyBitsGenerated = 0;
+	Bip::Entropy.Clear();
+
+	while (Bip::NumEntropyBitsGenerated < Bip::NumEntropyBitsNeeded)
+	{
+		switch (method)
+		{
+			#ifdef DEV_AUTO_GENERATE
+			case Bip::Method::Auto:
+				Bip::QueryUserEntropyBits_DevGen();
+				break;
+			#endif
+			case Bip::Method::Simple:
+				Bip::QueryUserEntropyBits_Simple();
+				break;
+			case Bip::Method::Parallel:
+				Bip::QueryUserEntropyBits_Parallel();
+				break;
+			case Bip::Method::Extractor:
+				Bip::QueryUserEntropyBits_Extractor();
+				break;
+		}
+		tPrintf("Progress: %d of %d bits.\n", Bip::NumEntropyBitsGenerated, Bip::NumEntropyBitsNeeded);
+		tPrintf(Bip::ChVerb, "Entropy: %0_256|256b\n", Bip::Entropy);
+	}
+
+	tAssert(Bip::NumEntropyBitsGenerated == Bip::NumEntropyBitsNeeded);
+
+	const char* words[24];
+	Bip::ComputeWordsFromEntropy(words, numWords);
+
+	// Tell the user the words.
+	tPrintf("\n");
+	for (int w = 0; w < numWords; w++)
+		tPrintf("Word %02d: %s\n", w+1, words[w]);
+	tPrintf("\n");
+
+	bool savedFile = Bip::QueryUserSave(words, numWords);
+	if (savedFile)
+		tPrintf("You saved results to a file. If you go again and save it will be overwritten.\n");
+}
+
+
+void Bip::DoCompleteLastWord()
+{
+	int numAvailWords = QueryUserNumAvailableWords();
+
+	// @todo Ask user to input numAvailWords.
+	tList<tStringItem> wordList;
+	QueryUserAvailableWords(wordList, numAvailWords);
+}
+
+
+void Bip::DoSelfTest(tSystem::tChannel userChannels)
+{
+	// Since we want to curtail the output for the self-tests, we need to modify and then restore the print channels.
+	tSystem::tSetChannels(tSystem::tChannel_Systems);
+	bool pass = Bip::SelfTest();
+	tPrintf("Seft-Test Result: %s\n", pass ? "PASS" : "FAIL");
+	tSystem::tSetChannels(userChannels);
+}
+
+
 int main(int argc, char** argv)
 {
 	// The random number generator is ONLY used to clear the entropy memory so it's not hanging around in RAM.
@@ -875,72 +1005,19 @@ int main(int argc, char** argv)
 ChooseLanguage:
 	Bip::QueryUserSetLanguage();
 
-	int numWords = Bip::QueryUserNumWords();
-	if (numWords == 0)
+	int mode = Bip::QueryUserMode();
+	switch (mode)
 	{
-		// Since we want to control the output for the self-tests, we need to modify and then restore the print channels.
-		tSystem::tSetChannels(tSystem::tChannel_Systems);
-		bool pass = Bip::SelfTest();
-		tPrintf("Seft-Test Result: %s\n", pass ? "PASS" : "FAIL");
-		tSystem::tSetChannels(channels);
-	}
-	else
-	{
-		tPrintf("A %d-word mnemonic will be created.\n", numWords);
-
-		Bip::NumEntropyBitsNeeded = Bip::GetNumEntropyBits(numWords);
-		tPrintf(Bip::ChVerb, "Your %d-word mnemonic phrase will contain %d bits of entropy.\n", numWords, Bip::NumEntropyBitsNeeded);
-
-		Bip::Method method = Bip::QueryUserMethod();
-		tPrintf("Using %s method.\n", Bip::MedthodNames[ int(method) ]);
-
-		Bip::NumEntropyBitsGenerated = 0;
-		Bip::Entropy.Clear();
-
-		while (Bip::NumEntropyBitsGenerated < Bip::NumEntropyBitsNeeded)
-		{
-			switch (method)
-			{
-				#ifdef DEV_AUTO_GENERATE
-				case Bip::Method::Auto:
-					Bip::QueryUserEntropyBits_DevGen();
-					break;
-				#endif
-				case Bip::Method::Simple:
-					Bip::QueryUserEntropyBits_Simple();
-					break;
-				case Bip::Method::Parallel:
-					Bip::QueryUserEntropyBits_Parallel();
-					break;
-				case Bip::Method::Extractor:
-					Bip::QueryUserEntropyBits_Extractor();
-					break;
-			}
-			tPrintf("Progress: %d of %d bits.\n", Bip::NumEntropyBitsGenerated, Bip::NumEntropyBitsNeeded);
-			tPrintf(Bip::ChVerb, "Entropy: %0_256|256b\n", Bip::Entropy);
-		}
-
-		tAssert(Bip::NumEntropyBitsGenerated == Bip::NumEntropyBitsNeeded);
-
-		const char* words[24];
-		Bip::ComputeWordsFromEntropy(words, numWords);
-
-		// Tell the user the words.
-		tPrintf("\n");
-		for (int w = 0; w < numWords; w++)
-			tPrintf("Word %02d: %s\n", w+1, words[w]);
-		tPrintf("\n");
-
-		bool savedFile = Bip::QueryUserSave(words, numWords);
-		if (savedFile)
-			tPrintf("You saved results to a file. If you go again and save it will be overwritten.\n");
+		case 0: Bip::DoCreateMnemonic();	break;
+		case 1: Bip::DoCompleteLastWord();	break;
+		case 2: Bip::DoSelfTest(channels);	break;
 	}
 
 	// We're done let's clear the entropy variables.
 	Bip::ClearState();
 
-	// Generate Another?
-	int again = Bip::InputRanged("Generate Another? 0=No 1=Yes [0, 1]: ", [](int a) -> bool { return (a == 0) || (a == 1); });
+	// Go again?
+	int again = Bip::InputRanged("Go Again? 0=No 1=Yes [0, 1]: ", [](int a) -> bool { return (a == 0) || (a == 1); });
 	if (again == 1)
 		goto ChooseLanguage;
 
