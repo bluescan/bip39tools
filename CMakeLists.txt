@@ -47,6 +47,8 @@ FetchContent_MakeAvailable(tacent)
 add_executable(
 	${PROJECT_NAME}
 	Src/Version.cpp
+	Src/Dictionary.h
+	Src/Dictionary.cpp
 	Src/BipMain.cpp
 	Src/Version.cmake.h
 )
