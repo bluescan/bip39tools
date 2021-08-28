@@ -52,11 +52,11 @@ namespace Bip
 	const char* MedthodNames[] = { "Auto", "Simple", "Parallel", "Extractor" };
 	Method QueryUserMethod();
 
-	void QueryUserEntropyBits_Simple();
-	void QueryUserEntropyBits_Parallel();
-	void QueryUserEntropyBits_Extractor();
+	void QueryUserEntropyBits_Simple(int numBits);
+	void QueryUserEntropyBits_Parallel(int numBits);
+	void QueryUserEntropyBits_Extractor(int numBits);
 	#ifdef DEV_AUTO_GENERATE
-	void QueryUserEntropyBits_DevGen();
+	void QueryUserEntropyBits_DevGen(int numBits);
 	#endif
 	bool QueryUserSave(const tList<tStringItem>& words);	// Returns true if a file was saved.
 
@@ -78,7 +78,7 @@ namespace Bip
 	int InputInt();				// Returns -1 if couldn't read an integer >= 0.
 	int InputIntRanged(const char* question, std::function< bool(int) > inRange, int defaultVal = -1, int* inputCount = nullptr);
 
-	void ComputeWordsFromEntropy(tList<tStringItem>& words, int numWords, Bip39::Dictionary::Language);
+	void ComputeWordsFromEntropy(tList<tStringItem>& words, int numWords, int numBits, Bip39::Dictionary::Language);
 	void ClearState();
 
 	tString InputString();
@@ -92,8 +92,6 @@ namespace Bip
 	// State.
 	//
 	Bip39::Dictionary::Language Language	= Bip39::Dictionary::Language::English;
-	int NumMnemonicWords					= 0;
-	int NumEntropyBitsNeeded				= 0;
 	int NumEntropyBitsGenerated				= 0;
 	int RollCount							= 1;
 
@@ -325,11 +323,11 @@ bool Test::TestBIP39Vectors()
 		int numWords = Bip::GetNumEntropyWords(numBits);
 		tPrintf("   NumBits %d. NumWords %d\n", numBits, numWords);
 
-		Bip::NumEntropyBitsGenerated = Bip::NumEntropyBitsNeeded = numBits;
+		Bip::NumEntropyBitsGenerated = numBits;
 		tList<tStringItem> words;
 
 		// Self tests must be done in engligh as the test vectors are in that language only.
-		Bip::ComputeWordsFromEntropy(words, numWords, Bip39::Dictionary::Language::English);
+		Bip::ComputeWordsFromEntropy(words, numWords, numBits, Bip39::Dictionary::Language::English);
 		tAssert(numWords == words.GetNumItems());
 		char generatedWords[1024];
 		char* curr = generatedWords;
@@ -380,8 +378,6 @@ void Bip::ClearState()
 	tPrintf(ChVerb, "Erasing Memory\n");
 
 	Language				= Bip39::Dictionary::Language::English;
-	NumMnemonicWords		= 0;
-	NumEntropyBitsNeeded	= 0;
 	NumEntropyBitsGenerated	= 0;
 	RollCount				= 1;
 
@@ -656,7 +652,7 @@ Bip::Method Bip::QueryUserMethod()
 }
 
 
-void Bip::QueryUserEntropyBits_Simple()
+void Bip::QueryUserEntropyBits_Simple(int numBits)
 {
 	int roll = 0;
 	do
@@ -671,8 +667,8 @@ void Bip::QueryUserEntropyBits_Simple()
 	}
 	while (roll >= 5);
 
-	tAssert((NumEntropyBitsNeeded - NumEntropyBitsGenerated) >= 2);
-	int bitIndex = NumEntropyBitsNeeded-NumEntropyBitsGenerated-1;
+	tAssert((numBits - NumEntropyBitsGenerated) >= 2);
+	int bitIndex = numBits-NumEntropyBitsGenerated-1;
 	switch (roll)
 	{
 		case 1:				// 00
@@ -696,7 +692,7 @@ void Bip::QueryUserEntropyBits_Simple()
 }
 
 
-void Bip::QueryUserEntropyBits_Parallel()
+void Bip::QueryUserEntropyBits_Parallel(int numBits)
 {
 	uint32 base6 = 0;
 	do
@@ -714,7 +710,7 @@ void Bip::QueryUserEntropyBits_Parallel()
 	while (base6 >= 32);
 
 	// Since the number of bits required may not be divisible by 5, make sure we don't go over.
-	int bitCount = NumEntropyBitsNeeded-NumEntropyBitsGenerated;
+	int bitCount = numBits-NumEntropyBitsGenerated;
 	int bitIndex = bitCount - 1;
 
 	if (bitCount > 5) bitCount = 5;
@@ -728,7 +724,7 @@ void Bip::QueryUserEntropyBits_Parallel()
 }
 
 
-void Bip::QueryUserEntropyBits_Extractor()
+void Bip::QueryUserEntropyBits_Extractor(int numBits)
 {
 	int roll1 = 0;
 	int roll2 = 0;
@@ -747,7 +743,7 @@ void Bip::QueryUserEntropyBits_Extractor()
 	bool bit = (roll1 < roll2) ? false : true;
 	tPrintf(ChVerb, "Generated a %s\n", bit ? "1" : "0");
 
-	int bitIndex = NumEntropyBitsNeeded-NumEntropyBitsGenerated-1;
+	int bitIndex = numBits-NumEntropyBitsGenerated-1;
 	Entropy.SetBit(bitIndex-0, bit);
 
 	NumEntropyBitsGenerated += 1;
@@ -755,10 +751,10 @@ void Bip::QueryUserEntropyBits_Extractor()
 
 
 #ifdef DEV_AUTO_GENERATE
-void Bip::QueryUserEntropyBits_DevGen()
+void Bip::QueryUserEntropyBits_DevGen(int numBits)
 {
-	tAssert((NumEntropyBitsNeeded - NumEntropyBitsGenerated) >= 32);
-	int bitIndex = NumEntropyBitsNeeded-NumEntropyBitsGenerated-1;
+	tAssert((numBits - NumEntropyBitsGenerated) >= 32);
+	int bitIndex = numBits-NumEntropyBitsGenerated-1;
 
 	uint32 randBits = tMath::tRandom::tGetBits();
 	for (int b = 0; b < 32; b++)
@@ -800,7 +796,7 @@ int Bip::GetNumEntropyWords(int numBits)
 }
 
 
-void Bip::ComputeWordsFromEntropy(tList<tStringItem>& words, int numWords, Bip39::Dictionary::Language lang)
+void Bip::ComputeWordsFromEntropy(tList<tStringItem>& words, int numWords, int numBits, Bip39::Dictionary::Language lang)
 {
 	// From BIP-39
 	//
@@ -819,7 +815,7 @@ void Bip::ComputeWordsFromEntropy(tList<tStringItem>& words, int numWords, Bip39
 	tPrintf(Bip::ChVerb | Bip::ChNorm, "SHA256: %0_64|256X\n", sha256);
 
 	// How many of the first bits do we need?
-	int numHashBitsNeeded = Bip::NumEntropyBitsNeeded / 32;
+	int numHashBitsNeeded = numBits / 32;
 	uint8 firstBits = sha256.GetByte(31);
 	firstBits >>= (8-numHashBitsNeeded);
 	tPrintf(Bip::ChVerb, "The first %d bits of the sha are: %08b\n", numHashBitsNeeded, firstBits);
@@ -936,8 +932,8 @@ void Bip::DoCreateMnemonic()
 	int numWords = Bip::QueryUserNumWords();
 	tPrintf("A %d-word mnemonic will be created.\n", numWords);
 
-	Bip::NumEntropyBitsNeeded = Bip::GetNumEntropyBits(numWords);
-	tPrintf(Bip::ChVerb, "Your %d-word mnemonic phrase will contain %d bits of entropy.\n", numWords, Bip::NumEntropyBitsNeeded);
+	int numBits = Bip::GetNumEntropyBits(numWords);
+	tPrintf(Bip::ChVerb, "Your %d-word mnemonic phrase will contain %d bits of entropy.\n", numWords, numBits);
 
 	Bip::Method method = Bip::QueryUserMethod();
 	tPrintf("Using %s method.\n", Bip::MedthodNames[ int(method) ]);
@@ -945,32 +941,32 @@ void Bip::DoCreateMnemonic()
 	Bip::NumEntropyBitsGenerated = 0;
 	Bip::Entropy.Clear();
 
-	while (Bip::NumEntropyBitsGenerated < Bip::NumEntropyBitsNeeded)
+	while (Bip::NumEntropyBitsGenerated < numBits)
 	{
 		switch (method)
 		{
 			#ifdef DEV_AUTO_GENERATE
 			case Bip::Method::Auto:
-				Bip::QueryUserEntropyBits_DevGen();
+				Bip::QueryUserEntropyBits_DevGen(numBits);
 				break;
 			#endif
 			case Bip::Method::Simple:
-				Bip::QueryUserEntropyBits_Simple();
+				Bip::QueryUserEntropyBits_Simple(numBits);
 				break;
 			case Bip::Method::Parallel:
-				Bip::QueryUserEntropyBits_Parallel();
+				Bip::QueryUserEntropyBits_Parallel(numBits);
 				break;
 			case Bip::Method::Extractor:
-				Bip::QueryUserEntropyBits_Extractor();
+				Bip::QueryUserEntropyBits_Extractor(numBits);
 				break;
 		}
-		tPrintf("Progress: %d of %d bits.\n", Bip::NumEntropyBitsGenerated, Bip::NumEntropyBitsNeeded);
+		tPrintf("Progress: %d of %d bits.\n", Bip::NumEntropyBitsGenerated, numBits);
 		tPrintf(Bip::ChVerb, "Entropy: %0_256|256b\n", Bip::Entropy);
 	}
 
-	tAssert(Bip::NumEntropyBitsGenerated == Bip::NumEntropyBitsNeeded);
+	tAssert(Bip::NumEntropyBitsGenerated == numBits);
 	tList<tStringItem> words;
-	Bip::ComputeWordsFromEntropy(words, numWords, Language);
+	Bip::ComputeWordsFromEntropy(words, numWords, numBits, Language);
 	tAssert(numWords == words.GetNumItems());
 
 	// Tell the user the words.
