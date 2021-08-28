@@ -94,7 +94,7 @@ namespace Bip
 	// State.
 	//
 	Bip39::Dictionary::Language CurrentLanguage	= Bip39::Dictionary::Language::English;
-	WordListType* WordList		= nullptr;
+	DictionaryWords* Dictionary	= nullptr;
 	int NumMnemonicWords		= 0;
 	int NumEntropyBitsNeeded	= 0;
 	int NumEntropyBitsGenerated	= 0;
@@ -371,7 +371,7 @@ bool Bip::SelfTest()
 	tPrintf("Testing BIP39 Vectors\n");
 	// Self tests must be done in engligh as the test vectors are in that language only.
 	CurrentLanguage = Bip39::Dictionary::Language::English;
-	WordList = &Bip39::Dictionary::WordList_english;
+	Dictionary = Bip39::Dictionary::GetDictionary(CurrentLanguage);
 	if (!Test::TestBIP39Vectors())
 		return false;
 
@@ -384,7 +384,7 @@ void Bip::ClearState()
 	tPrintf(ChVerb, "Erasing Memory\n");
 
 	CurrentLanguage			= Bip39::Dictionary::Language::English;
-	WordList				= nullptr;
+	Dictionary				= nullptr;
 	NumMnemonicWords		= 0;
 	NumEntropyBitsNeeded	= 0;
 	NumEntropyBitsGenerated	= 0;
@@ -547,25 +547,13 @@ void Bip::QueryUserSetLanguage()
 {
 	tPrintf("Language?\n");
 	for (int l = 0; l < Bip39::Dictionary::NumLanguages; l++)
-		tPrintf("%d=%s\n", l, Bip39::Dictionary::Languages[l]);
+		tPrintf("%d=%s\n", l, Bip39::Dictionary::LanguageNames[l]);
 
 	int lang = Bip::InputIntRanged("Language [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]: ", [](int l) -> bool { return (l >= 0) && (l <= 9); }, 0);
-	tPrintf("Language Set To %s\n", Bip39::Dictionary::Languages[lang]);
+	tPrintf("Language Set To %s\n", Bip39::Dictionary::LanguageNames[lang]);
 
 	CurrentLanguage = Bip39::Dictionary::Language(lang);
-	switch (CurrentLanguage)
-	{
-		case Bip39::Dictionary::Language::English:				WordList = &Bip39::Dictionary::WordList_english;				break;
-		case Bip39::Dictionary::Language::Czech:				WordList = &Bip39::Dictionary::WordList_czech;					break;
-		case Bip39::Dictionary::Language::Portuguese:			WordList = &Bip39::Dictionary::WordList_portuguese;				break;
-		case Bip39::Dictionary::Language::Italian:				WordList = &Bip39::Dictionary::WordList_italian;				break;
-		case Bip39::Dictionary::Language::French:				WordList = &Bip39::Dictionary::WordList_french;					break;
-		case Bip39::Dictionary::Language::Spanish:				WordList = &Bip39::Dictionary::WordList_spanish;				break;
-		case Bip39::Dictionary::Language::Japanese:				WordList = &Bip39::Dictionary::WordList_japanese;				break;
-		case Bip39::Dictionary::Language::Korean:				WordList = &Bip39::Dictionary::WordList_korean;					break;
-		case Bip39::Dictionary::Language::Chinese_Simplified:	WordList = &Bip39::Dictionary::WordList_chinese_simplified;		break;
-		case Bip39::Dictionary::Language::Chinese_Traditional:	WordList = &Bip39::Dictionary::WordList_chinese_traditional;	break;
-	}
+	Dictionary = Bip39::Dictionary::GetDictionary(CurrentLanguage);
 
 	if (CurrentLanguage >= Bip39::Dictionary::Language::French)
 	{
@@ -744,7 +732,7 @@ void Bip::QueryUserEntropyBits_Extractor()
 	int roll1 = 0;
 	int roll2 = 0;
 
-	do 
+	do
 	{
 		char roll1Text[64]; tsPrintf(roll1Text, "Roll#%03d [1, 2, 3, 4, 5, 6]: ", RollCount);
 		roll1 = Bip::InputIntRanged(roll1Text, [](int r) -> bool { return (r >= 1) && (r <= 6); }, -1, &RollCount);
@@ -864,7 +852,7 @@ void Bip::ComputeWordsFromEntropy(const char* words[], int numWords)
 	for (int w = 0; w < numWords; w++)
 	{
 		int wordIndex = wordIndices[numWords - w - 1];
-		words[w] = (*WordList)[wordIndex];
+		words[w] = (*Dictionary)[wordIndex];
 	}
 
 	// Before leaving let's clear the entropy variables.
@@ -1041,6 +1029,13 @@ int main(int argc, char** argv)
 	Bip::GenerateWordListHeaders();
 	return 0;
 	#endif
+
+	////////TESTING
+	//tString fullWord = Bip39::Dictionary::GetFullWord("above");
+	//if (fullWord.IsEmpty())
+	//	tPrintf("No Unique Word Found\n");
+	//else
+	//	tPrintf("Found [%s]\n", fullWord.Chars());
 
 ChooseLanguage:
 	Bip::QueryUserSetLanguage();

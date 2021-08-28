@@ -13,9 +13,11 @@
 // PERFORMANCE OF THIS SOFTWARE.
 
 #pragma once
+#include <Foundation/tString.h>
 
 
-typedef const char*			WordListType[2048];
+
+typedef const char*			DictionaryWords[2048];
 
 
 namespace Bip39
@@ -24,20 +26,24 @@ namespace Bip39
 
 namespace Dictionary
 {
-	extern WordListType WordList_english;
-	extern WordListType WordList_czech;
-	extern WordListType WordList_portuguese;
-	extern WordListType WordList_italian;
-	extern WordListType WordList_french;
-	extern WordListType WordList_spanish;
-	extern WordListType WordList_japanese;
-	extern WordListType WordList_korean;
-	extern WordListType WordList_chinese_simplified;
-	extern WordListType WordList_chinese_traditional;
+	extern const char* LanguageNames[];
+	enum class Language { English, Czech, Portuguese, Italian, French, Spanish, Japanese, Korean, Chinese_Simplified, Chinese_Traditional };
+	extern const int NumLanguages;
 
-	extern const char* Languages[];//		= { "english", "czech", "portuguese", "italian", "french", "spanish", "japanese", "korean", "chinese_simplified", "chinese_traditional" };
-	enum class Language       	  {  English,   Czech,   Portuguese,   Italian,   French,   Spanish,   Japanese,   Korean,   Chinese_Simplified,   Chinese_Traditional  };
-	extern const int NumLanguages;//		= sizeof(Languages)/sizeof(*Languages);
+	DictionaryWords* GetDictionary(Language);
+
+	// Finds the full unique word (if it exists) given just a partial word prefix. If it can't find a unique
+	// match it returns an empty string. In English Bip39 words are uniquely identifiable with the first 4
+	// letters. Ex. If you passed "abou" to this function it would return "about". Since "above" is also in
+	// the list, if you passed "abo" it would return an empty string since there are 2 possibilites. Further,
+	// if you passed "abouz", it would return the correct "about" as it assumes the "z" is a typo. That is,
+	// it returns as soon as a unique match is made as the prexix is culled one character at a time. Note
+	// that the '4' is not hardcoded into any of the logic for this function. Lastly, if you enter the full
+	// exact word in the first place, it still works and returns it.
+	tString GetFullWord(const tString& prefix);
+
+	// This returns the 11 bits associated with the supplied word in the given language. 
+	//uint32 GetBits(
 }
 
 
