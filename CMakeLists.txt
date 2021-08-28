@@ -24,7 +24,7 @@ else()
 	set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug" "Release")
 endif()
 
-# bip39dice is the top level project. This include sets the version string variable.
+# This include sets the version string variable for all the BipTools (dice2bip39, unittestsbip39, validatebip39, finalwordbip39),
 include("Src/Version.cmake.h")
 project(dice2bip39 VERSION "${DICE2BIP39_VERSION}" LANGUAGES C CXX)
 message(STATUS "Status -- ProjectName ${PROJECT_NAME} ProjectVersion ${PROJECT_VERSION}")
@@ -47,9 +47,11 @@ FetchContent_MakeAvailable(tacent)
 add_executable(
 	${PROJECT_NAME}
 	Src/Version.cpp
-	Src/Dictionary.h
-	Src/Dictionary.cpp
-	Src/BipMain.cpp
+	Src/Bip39/Bip39.h
+	Src/Bip39/Bip39.cpp
+	Src/Bip39/Dictionary/Dictionary.h
+	Src/Bip39/Dictionary/Dictionary.cpp
+	Src/Dice2Bip39.cpp
 	Src/Version.cmake.h
 )
 

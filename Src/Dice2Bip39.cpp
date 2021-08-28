@@ -1,4 +1,4 @@
-// BipMain.cpp
+// Dice2Bip39.cpp
 //
 // Generate a valid BIP-39 mnemonic phrase with dice.
 //
@@ -24,7 +24,7 @@
 #include <System/tFile.h>
 #include <Math/tRandom.h>		// Only used to overwrite entropy memory when we're done with it.
 #include <System/tTime.h>		// Only used to overwrite entropy memory when we're done with it.
-#include "Dictionary.h"
+#include "Bip39/Dictionary/Dictionary.h"
 
 
 tCommand::tOption ConciseOutput	("Concise output.",	'c',	"concise");
