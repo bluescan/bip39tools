@@ -13,8 +13,8 @@
 // PERFORMANCE OF THIS SOFTWARE.
 
 // These two should not be defined when compiling. They are for testing/dev purposes only.
-// #define DEV_AUTO_GENERATE
-// #define DEV_GEN_WORDLIST
+//#define DEV_AUTO_GENERATE
+//#define DEV_GEN_WORDLIST
 #include "Version.cmake.h"
 #include <iostream>
 #include <string>
@@ -58,13 +58,13 @@ namespace Bip
 	#ifdef DEV_AUTO_GENERATE
 	void QueryUserEntropyBits_DevGen();
 	#endif
-	bool QueryUserSave(const char* words[24], int numWords);	// Returns true if a file was saved.
+	bool QueryUserSave(const tList<tStringItem>& words);	// Returns true if a file was saved.
 
 	//
 	// Complete Last Word Functions.
 	//
 	int QueryUserNumAvailableWords();
-	void QueryUserAvailableWords(tItList<uint16>& wordIndexes, int numWords);
+	void QueryUserAvailableWords(tList<tStringItem>& words, int numWords);
 
 	//
 	// Self-Test Functions.
@@ -78,13 +78,11 @@ namespace Bip
 	int InputInt();				// Returns -1 if couldn't read an integer >= 0.
 	int InputIntRanged(const char* question, std::function< bool(int) > inRange, int defaultVal = -1, int* inputCount = nullptr);
 
-	void ComputeWordsFromEntropy(const char* words[], int numWords);
+	void ComputeWordsFromEntropy(tList<tStringItem>& words, int numWords, Bip39::Dictionary::Language);
 	void ClearState();
 
-//	typedef const char*			WordListType[2048];
-
 	tString InputString();
-	uint16 InputStringBip39Word(int wordNum, Bip39::Dictionary::Language = Bip39::Dictionary::Language::English);
+	tString InputStringBip39Word(int wordNum, Bip39::Dictionary::Language = Bip39::Dictionary::Language::English);
 
 	uint64 ChConc = tSystem::tChannel_Verbosity0;
 	uint64 ChNorm = tSystem::tChannel_Verbosity1;
@@ -93,12 +91,11 @@ namespace Bip
 	//
 	// State.
 	//
-	Bip39::Dictionary::Language CurrentLanguage	= Bip39::Dictionary::Language::English;
-	DictionaryWords* Dictionary	= nullptr;
-	int NumMnemonicWords		= 0;
-	int NumEntropyBitsNeeded	= 0;
-	int NumEntropyBitsGenerated	= 0;
-	int RollCount				= 1;
+	Bip39::Dictionary::Language Language	= Bip39::Dictionary::Language::English;
+	int NumMnemonicWords					= 0;
+	int NumEntropyBitsNeeded				= 0;
+	int NumEntropyBitsGenerated				= 0;
+	int RollCount							= 1;
 
 	tbit256 Entropy;
 };
@@ -329,14 +326,16 @@ bool Test::TestBIP39Vectors()
 		tPrintf("   NumBits %d. NumWords %d\n", numBits, numWords);
 
 		Bip::NumEntropyBitsGenerated = Bip::NumEntropyBitsNeeded = numBits;
+		tList<tStringItem> words;
 
-		const char* words[24];
-		Bip::ComputeWordsFromEntropy(words, numWords);
+		// Self tests must be done in engligh as the test vectors are in that language only.
+		Bip::ComputeWordsFromEntropy(words, numWords, Bip39::Dictionary::Language::English);
+		tAssert(numWords == words.GetNumItems());
 		char generatedWords[1024];
 		char* curr = generatedWords;
-		for (int w = 0; w < numWords; w++)
+		for (tStringItem* word = words.First(); word; word = word->Next())
 		{
-			int numWritten = tsPrintf(curr, "%s ", words[w]);
+			int numWritten = tsPrintf(curr, "%s ", word->Chars());
 			curr += numWritten;
 		}
 		*(curr-1) = '\0';
@@ -369,9 +368,6 @@ bool Bip::SelfTest()
 		return false;
 
 	tPrintf("Testing BIP39 Vectors\n");
-	// Self tests must be done in engligh as the test vectors are in that language only.
-	CurrentLanguage = Bip39::Dictionary::Language::English;
-	Dictionary = Bip39::Dictionary::GetDictionary(CurrentLanguage);
 	if (!Test::TestBIP39Vectors())
 		return false;
 
@@ -383,8 +379,7 @@ void Bip::ClearState()
 {
 	tPrintf(ChVerb, "Erasing Memory\n");
 
-	CurrentLanguage			= Bip39::Dictionary::Language::English;
-	Dictionary				= nullptr;
+	Language				= Bip39::Dictionary::Language::English;
 	NumMnemonicWords		= 0;
 	NumEntropyBitsNeeded	= 0;
 	NumEntropyBitsGenerated	= 0;
@@ -462,38 +457,44 @@ tString Bip::InputString()
 }
 
 
-uint16 Bip::InputStringBip39Word(int wordNum, Bip39::Dictionary::Language lang)
+tString Bip::InputStringBip39Word(int wordNum, Bip39::Dictionary::Language lang)
 {
 	tAssert(lang == Bip39::Dictionary::Language::English);
-	tString val;
+	tString word;
 	const int maxTries = 100;
 	for (int tries = 0; tries < maxTries; tries++)
 	{
 		tPrintf("Enter Word %d:", wordNum);
-		val = Bip::InputString();
-		if (!val.IsEmpty())			// @todo Check dict validity.
+		word = Bip::InputString();
+
+		// Word may not be the full word at this point. It's possible the user only entered the first
+		// few digits. If they entered 4, success is guaranteed. GetFullWord results in an empty string
+		// if a unique match isn't found, so it can be returned directly.
+		word = Bip39::Dictionary::GetFullWord(word, lang);
+		if (word.IsEmpty())
+			tPrintf("Invalid word. Try again.\n");
+		else
 			break;
 	}
 
-	if (val.IsEmpty())
+	if (word.IsEmpty())
 	{
-		tPrintf("Too many ill-formed inputs. Giving up.\n");
+		tPrintf("Too many attepts. Giving up.\n");
 		exit(1);
 	}
 
-	uint16 index = 42;				// @todo Look up index from dict.
-	return index;
+	return word;
 }
 
 
 #ifdef DEV_GEN_WORDLIST
 void Bip::GenerateWordListHeaders()
 {
-	for (int lang = 0; lang < NumLanguages; lang++)
+	for (int lang = 0; lang < Bip39::Dictionary::GetNumLanguages(); lang++)
 	{
-		const char* language = Languages[lang]; 
+		tString language = Bip39::Dictionary::GetLanguageName( Bip39::Dictionary::Language(lang) );
 		tString srcFile;
-		tsPrintf(srcFile, "../Reference/WordLists/%s.txt", language);
+		tsPrintf(srcFile, "../Reference/WordLists/%s.txt", language.Chars());
 
 		tString words;
 		tSystem::tLoadFile(srcFile, words, '_');
@@ -546,16 +547,14 @@ void Bip::GenerateWordListHeaders()
 void Bip::QueryUserSetLanguage()
 {
 	tPrintf("Language?\n");
-	for (int l = 0; l < Bip39::Dictionary::NumLanguages; l++)
-		tPrintf("%d=%s\n", l, Bip39::Dictionary::LanguageNames[l]);
+	for (int l = 0; l < Bip39::Dictionary::GetNumLanguages(); l++)
+		tPrintf("%d=%s\n", l, Bip39::Dictionary::GetLanguageName(Bip39::Dictionary::Language(l)).Chars());
 
 	int lang = Bip::InputIntRanged("Language [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]: ", [](int l) -> bool { return (l >= 0) && (l <= 9); }, 0);
-	tPrintf("Language Set To %s\n", Bip39::Dictionary::LanguageNames[lang]);
+	Language = Bip39::Dictionary::Language(lang);
+	tPrintf("Language Set To %s\n", Bip39::Dictionary::GetLanguageName(Language).Chars());
 
-	CurrentLanguage = Bip39::Dictionary::Language(lang);
-	Dictionary = Bip39::Dictionary::GetDictionary(CurrentLanguage);
-
-	if (CurrentLanguage >= Bip39::Dictionary::Language::French)
+	if (Language >= Bip39::Dictionary::Language::French)
 	{
 		tPrintf
 		(
@@ -578,11 +577,13 @@ void Bip::QueryUserSetLanguage()
 
 int Bip::QueryUserMode()
 {
+	//WIP
 	//tPrintf(ChNorm | ChVerb | ChConc, "Operation Mode? 0=Create 1=LastWords 2=Self-Test\n");
 	tPrintf(ChNorm | ChVerb | ChConc, "Operation Mode? 0=Create 1=Self-Test\n");
 	int mode = Bip::InputIntRanged
 	(
 		"Mode [0, 1]: ",
+		// WIP
 		//"Mode [0, 1, 2]: ",
 		[](int m) -> bool { return (m == 0) || (m == 1); },//|| (m == 2); },
 		0
@@ -799,7 +800,7 @@ int Bip::GetNumEntropyWords(int numBits)
 }
 
 
-void Bip::ComputeWordsFromEntropy(const char* words[], int numWords)
+void Bip::ComputeWordsFromEntropy(tList<tStringItem>& words, int numWords, Bip39::Dictionary::Language lang)
 {
 	// From BIP-39
 	//
@@ -839,10 +840,10 @@ void Bip::ComputeWordsFromEntropy(const char* words[], int numWords)
 
 	// Next we make an array for our word indices. We will be filling it in backwards to
 	// avoid extra shift operations. We just shift by 11 each time.
-	int wordIndices[24];
+	uint32 wordIndices[24];
 	for (int w = 0; w < numWords; w++)
 	{
-		int wordIndex = entropyAndChecksum & tuint512(0x000007FF);
+		uint32 wordIndex = entropyAndChecksum & tuint512(0x000007FF);
 		tAssert((wordIndex >= 0) && (wordIndex < 2048));
 		wordIndices[w] = wordIndex;
 		entropyAndChecksum >>= 11;
@@ -851,8 +852,9 @@ void Bip::ComputeWordsFromEntropy(const char* words[], int numWords)
 	// And finally we put the words on the list in the correct order.
 	for (int w = 0; w < numWords; w++)
 	{
-		int wordIndex = wordIndices[numWords - w - 1];
-		words[w] = (*Dictionary)[wordIndex];
+		uint32 wordIndex = wordIndices[numWords - w - 1];
+		tString word = Bip39::Dictionary::GetWord(wordIndex, lang);
+		words.Append(new tStringItem(word));
 	}
 
 	// Before leaving let's clear the entropy variables.
@@ -865,12 +867,12 @@ void Bip::ComputeWordsFromEntropy(const char* words[], int numWords)
 }
 
 
-bool Bip::QueryUserSave(const char* words[24], int numWords)
+bool Bip::QueryUserSave(const tList<tStringItem>& words)
 {
 	bool savedFile = false;
 
 	// Should give option to save if language that doesn't dislay correctly in console chosen.
-	if (CurrentLanguage >= Bip39::Dictionary::Language::French)
+	if (Language >= Bip39::Dictionary::Language::French)
 	{
 		const char* wordSaveFile = "WordListResult.txt";
 		tPrintf
@@ -886,8 +888,11 @@ bool Bip::QueryUserSave(const char* words[24], int numWords)
 		{
 			tPrintf("Saving words.\n");
 			tFileHandle file = tSystem::tOpenFile(wordSaveFile, "wb");
+			int numWords = words.GetNumItems();
+			int wordNum = 1;
+			for (tStringItem* word = words.First(); word; word = word->Next(), wordNum++)
 			for (int w = 0; w < numWords; w++)
-				tfPrintf(file, "Word %02d: %s\n", w+1, words[w]);
+				tfPrintf(file, "Word %02d: %s\n", wordNum, word->Chars());
 			tSystem::tCloseFile(file);
 			savedFile = true;
 		}
@@ -915,12 +920,13 @@ int Bip::QueryUserNumAvailableWords()
 }
 
 
-void Bip::QueryUserAvailableWords(tItList<uint16>& wordIndexes, int numWords)
+void Bip::QueryUserAvailableWords(tList<tStringItem>& words, int numWords)
 {
+	tPrintf("Enter words. You may only enter the first 4 letters if you like.\n");
 	for (int w = 0; w < numWords; w++)
 	{
-		uint16 wordIndex = Bip::InputStringBip39Word(w+1);
-		tPrintf("Entered Word: %d\n", wordIndex);
+		tString fullWord = Bip::InputStringBip39Word(w+1);
+		tPrintf("Entered Word: %s\n", fullWord.Chars());
 	}
 }
 
@@ -963,17 +969,18 @@ void Bip::DoCreateMnemonic()
 	}
 
 	tAssert(Bip::NumEntropyBitsGenerated == Bip::NumEntropyBitsNeeded);
-
-	const char* words[24];
-	Bip::ComputeWordsFromEntropy(words, numWords);
+	tList<tStringItem> words;
+	Bip::ComputeWordsFromEntropy(words, numWords, Language);
+	tAssert(numWords == words.GetNumItems());
 
 	// Tell the user the words.
 	tPrintf("\n");
-	for (int w = 0; w < numWords; w++)
-		tPrintf("Word %02d: %s\n", w+1, words[w]);
+	int wordNum = 1;
+	for (tStringItem* word = words.First(); word; word = word->Next(), wordNum++)
+		tPrintf("Word %02d: %s\n", wordNum, word->Chars());
 	tPrintf("\n");
 
-	bool savedFile = Bip::QueryUserSave(words, numWords);
+	bool savedFile = Bip::QueryUserSave(words);
 	if (savedFile)
 		tPrintf("You saved results to a file. If you go again and save it will be overwritten.\n");
 }
@@ -981,7 +988,8 @@ void Bip::DoCreateMnemonic()
 
 void Bip::DoCompleteLastWord()
 {
-	if (CurrentLanguage != Bip39::Dictionary::Language::English)
+	// WIP
+	if (Language != Bip39::Dictionary::Language::English)
 	{
 		tPrintf("Currently only English supported for complete last word.\n");
 		return;
@@ -989,9 +997,9 @@ void Bip::DoCompleteLastWord()
 
 	int numAvailWords = QueryUserNumAvailableWords();
 
-	// @todo Ask user to input the available words.
-	tItList<uint16> wordList;
-	QueryUserAvailableWords(wordList, numAvailWords);
+	// Ask user to input the available words.
+	tList<tStringItem> words;
+	QueryUserAvailableWords(words, numAvailWords);
 }
 
 
@@ -1029,13 +1037,6 @@ int main(int argc, char** argv)
 	Bip::GenerateWordListHeaders();
 	return 0;
 	#endif
-
-	////////TESTING
-	//tString fullWord = Bip39::Dictionary::GetFullWord("above");
-	//if (fullWord.IsEmpty())
-	//	tPrintf("No Unique Word Found\n");
-	//else
-	//	tPrintf("Found [%s]\n", fullWord.Chars());
 
 ChooseLanguage:
 	Bip::QueryUserSetLanguage();
