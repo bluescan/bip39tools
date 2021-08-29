@@ -14,10 +14,31 @@
 
 #pragma once
 #include <Foundation/tString.h>
-
-
+#include <Foundation/tBitField.h>
+#include "Dictionary/Dictionary.h"
 namespace Bip39
 {
+
+
+// Given the number of word, how many bits of entropy does it represent. Note this does not include the checksum bits.
+// Returns 0 on failure.
+int GetNumEntropyBits(int numWords);
+
+// Given the number of entropy bits,how many words would be needed. Returns 0 on failure.
+int GetNumEntropyWords(int numBits);
+
+// Fills in the supplied word list given the entropy you want to represent as a mnemonic.
+// Returns success.
+bool ComputeWordsFromEntropy
+(
+	tList<tStringItem>& words,
+	tbit256& entropy,			// We pass a ref here so we don't stamp critical info all over memory,
+	int entropyBits,
+	Bip39::Dictionary::Language
+);
+
+// Overwrite the entropyBits in memory a few times to help make it more secure.
+void ClearEntropy(tbit256& entropyBits);
 
 
 }
