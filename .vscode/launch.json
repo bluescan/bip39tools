@@ -9,7 +9,7 @@
 	"configurations":
 	[
 		{
-			"name": "Launch GDB",
+			"name": "Launch GDB dice2bit39",
 			"type": "cppdbg",
 			"request": "launch",
 			"program": "${workspaceFolder}/build/dice2bip39",
@@ -29,7 +29,27 @@
 			]
 		},
 		{
-			"name": "Launch Windows",
+			"name": "Launch GDB finalwordsbip39",
+			"type": "cppdbg",
+			"request": "launch",
+			"program": "${workspaceFolder}/build/finalwordsbip39",
+			"args": [],
+			"stopAtEntry": false,
+			"cwd": "${workspaceFolder}/build",
+			"environment": [],
+			"externalConsole": false,
+			"MIMode": "gdb",
+			"setupCommands":
+			[
+				{
+					"description": "Enable pretty-printing for gdb",
+					"text": "-enable-pretty-printing",
+					"ignoreFailures": true
+				}
+			]
+		},
+		{
+			"name": "Launch Windows dice2bip39",
 			"type": "cppvsdbg",
 			"request": "launch",
 			"program": "${workspaceFolder}/build/dice2bip39.exe",

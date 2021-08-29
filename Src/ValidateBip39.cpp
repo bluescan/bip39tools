@@ -307,7 +307,7 @@ bool Test::TestBIP39Vectors()
 		tPrintf("   Uint [%064|256x]\n", entropyBits);
 
 		int numBits = tStd::tStrlen(entropy)*4;
-		int numWords = Bip39::GetNumEntropyWords(numBits);
+		int numWords = Bip39::GetNumWords(numBits);
 		tPrintf("   NumBits %d. NumWords %d\n", numBits, numWords);
 		tList<tStringItem> words;
 

@@ -19,6 +19,18 @@
 #include "Bip39.h"
 
 
+// CS = ENT / 32
+// MS = (ENT + CS) / 11
+//
+// |  ENT  | CS | ENT+CS |  MS  |
+// +-------+----+--------+------+
+// |  128  |  4 |   132  |  12  |
+// |  160  |  5 |   165  |  15  |
+// |  192  |  6 |   198  |  18  |
+// |  224  |  7 |   231  |  21  |
+// |  256  |  8 |   264  |  24  |
+
+
 int Bip39::GetNumEntropyBits(int numWords)
 {
 	switch (numWords)
@@ -33,9 +45,22 @@ int Bip39::GetNumEntropyBits(int numWords)
 }
 
 
-int Bip39::GetNumEntropyWords(int numBits)
+int Bip39::GetNumChecksumBits(int numWords)
 {
-	switch (numBits)
+	return GetNumEntropyBits(numWords) / 32;
+}
+
+
+int Bip39::GetNumFullBits(int numWords)
+{
+	// Could just do 11 * numwords, but we want 0 returned if an invalid number of words is specified.
+	return GetNumEntropyBits(numWords) + GetNumChecksumBits(numWords);
+}
+
+
+int Bip39::GetNumWords(int numEntropyBits)
+{
+	switch (numEntropyBits)
 	{
 		case 128:	return 12;
 		case 160:	return 15;
@@ -47,11 +72,68 @@ int Bip39::GetNumEntropyWords(int numBits)
 }
 
 
+int Bip39::GetNumWordsFromFullBits(int numFullBits)
+{
+	switch (numFullBits)
+	{
+		case 132:	return 12;
+		case 165:	return 15;
+		case 198:	return 18;
+		case 231:	return 21;
+		case 264:	return 24;
+	}
+	return 0;
+}
+
+
+bool Bip39::ComputeFullBitsFromEntropy(tuint512& fullBits, int& numFullBits, tbit256& entropy, int numEntropyBits)
+{
+	numFullBits = GetNumFullBits( GetNumWords(numEntropyBits) );
+	if (numFullBits == 0)
+		return false;
+
+	// Compute the SHA-256 hash of the entropy.
+	uint8 entropyByteArray[32];
+	int numEntropyBytes = numEntropyBits/8;
+	for (int b = 0; b < numEntropyBytes; b++)
+		entropyByteArray[b] = entropy.GetByte(numEntropyBytes - b - 1);
+	tuint256 sha256 = tHash::tHashDataSHA256(entropyByteArray, numEntropyBytes);
+
+	uint64 chanNorm = tSystem::tChannel_Verbosity1;
+	uint64 chanVerb = tSystem::tChannel_Verbosity2;
+	tPrintf(chanVerb | chanNorm, "SHA256: %0_64|256X\n", sha256);
+
+	// How many of the first bits do we need?
+	int numHashBitsNeeded = numEntropyBits / 32;
+	uint8 firstBits = sha256.GetByte(31);
+	firstBits >>= (8-numHashBitsNeeded);
+	tPrintf(chanVerb, "The first %d bits of the sha are: %08b\n", numHashBitsNeeded, firstBits);
+
+	// We now need to store the entropy and the first bits of the sha in a single variable. We make one
+	// big enough for the 24-word case: 264 bits. Just for efficiency, we'll use 288, since internally
+	// the fixed int class uses 32-bit ints to store their value (and 288 is divisible by 32).
+	// Actually, we'll just use 512, as the tPrintf supports that size.
+	fullBits.MakeZero();
+	for (int r = 0; r < entropy.GetNumElements(); r++)
+		fullBits.RawElement(r) = entropy.GetElement(r);
+
+	fullBits <<= numHashBitsNeeded;
+	fullBits |= firstBits;
+	tPrintf(chanVerb, "EntropyAndChecksum\n");
+	tPrintf(chanVerb, "%0_512|512b\n", fullBits);
+
+	for (int b = 0; b < 32; b++)
+		entropyByteArray[b] = 0;
+
+	return true;
+}
+
+
 bool Bip39::ComputeWordsFromEntropy
 (
 	tList<tStringItem>& words,
 	tbit256& entropy,
-	int numBits,
+	int numEntropyBits,
 	Bip39::Dictionary::Language lang
 )
 {
@@ -62,40 +144,15 @@ bool Bip39::ComputeWordsFromEntropy
 	// Next, these concatenated bits are split into groups of 11 bits, each encoding a number from
 	// 0-2047, serving as an index into a wordlist. Finally, we convert these numbers into words and
 	// use the joined words as a mnemonic sentence.	
-	int numWords = GetNumEntropyWords(numBits);
+	int numWords = GetNumWords(numEntropyBits);
 	if (!numWords)
 		return false;
 
-	// Compute the SHA-256 hash of the entropy.
-	uint8 entropyByteArray[32];
-	int numEntropyBytes = numBits/8;
-	for (int b = 0; b < numEntropyBytes; b++)
-		entropyByteArray[b] = entropy.GetByte(numEntropyBytes - b - 1);
-	tuint256 sha256 = tHash::tHashDataSHA256(entropyByteArray, numEntropyBytes);
-
-	uint64 chanNorm = tSystem::tChannel_Verbosity1;
-	uint64 chanVerb = tSystem::tChannel_Verbosity2;
-	tPrintf(chanVerb | chanNorm, "SHA256: %0_64|256X\n", sha256);
-
-	// How many of the first bits do we need?
-	int numHashBitsNeeded = numBits / 32;
-	uint8 firstBits = sha256.GetByte(31);
-	firstBits >>= (8-numHashBitsNeeded);
-	tPrintf(chanVerb, "The first %d bits of the sha are: %08b\n", numHashBitsNeeded, firstBits);
-
-	// We now need to store the entropy and the first bits of the sha in a single variable. We make one
-	// big enough for the 24-word case: 264 bits. Just for efficiency, we'll use 288, since internally
-	// the fixed int class uses 32-bit ints to store their value (and 288 is divisible by 32).
-	// Actually, we'll just use 512, as the tPrintf supports that size.
 	tuint512 entropyAndChecksum;
-	entropyAndChecksum.MakeZero();
-	for (int r = 0; r < entropy.GetNumElements(); r++)
-		entropyAndChecksum.RawElement(r) = entropy.GetElement(r);
-
-	entropyAndChecksum <<= numHashBitsNeeded;
-	entropyAndChecksum |= firstBits;
-	tPrintf(chanVerb, "EntropyAndChecksum\n");
-	tPrintf(chanVerb, "%0_512|512b\n", entropyAndChecksum);
+	int numFullBits;
+	bool ok = ComputeFullBitsFromEntropy(entropyAndChecksum, numFullBits, entropy, numEntropyBits);
+	if (!ok)
+		return false;
 
 	// Next we make an array for our word indices. We will be filling it in backwards to
 	// avoid extra shift operations. We just shift by 11 each time.
@@ -119,11 +176,112 @@ bool Bip39::ComputeWordsFromEntropy
 	// Before leaving let's clear the local entropy variables. @todo Make sure this can't get optimized away.
 	for (int w = 0; w < numWords; w++)
 		wordIndices[w] = -1;
-	for (int b = 0; b < 32; b++)
-		entropyByteArray[b] = 0;
 	entropyAndChecksum.MakeZero();
 
 	return true;
+}
+
+
+// Returns the full compliment of bits from the words.
+bool Bip39::GetFullBits
+(
+	tuint512& fullBits,
+	int& numFullBits,
+	const tList<tStringItem>& words,
+	Bip39::Dictionary::Language language
+)
+{
+	numFullBits = GetNumFullBits( words.GetNumItems() );
+	if (numFullBits == 0)
+		return false;
+
+	fullBits.MakeZero();
+	for (tStringItem* word = words.First(); word; word = word->Next())
+	{
+		fullBits <<= 11;
+		uint32 bits = Bip39::Dictionary::GetBits(*word, language);
+		if (bits == 0xFFFFFFFF)
+			return false;
+		fullBits = fullBits | tuint512(bits);
+	}
+
+	return true;
+}
+
+
+bool Bip39::SplitFullBits
+(
+	tbit256& entropy,	int& numENTBits,
+	uint32& checksum,	int& numCSBits,
+	tuint512 fullBits,
+	int numFullBits
+)
+{
+	tuint512 full = fullBits;
+	int numWords = GetNumWordsFromFullBits(numFullBits);
+	if (numWords == 0)
+		return false;
+	numCSBits = GetNumChecksumBits(numWords);
+	numENTBits = GetNumEntropyBits(numWords);
+	
+	checksum = full & ((1 << numCSBits) - 1);
+	full >>= numCSBits;
+
+	entropy.SetAll(false);
+	for (int e = 0; e < numENTBits/32; e++)
+		entropy.GetElement(e) = full.GetRawElement(e);
+
+	return true;
+}
+
+
+// Convenience. Performs GetFullBits folloed by SplitEntropyAndChecksumBits and returns entropy.
+bool Bip39::GetEntropyFromWords
+(
+	tbit256& entropy,
+	int& numEntropyBits,
+	const tList<tStringItem>& words,
+	Bip39::Dictionary::Language language
+)
+{
+	int numFullBits;
+	tuint512 fullBits;
+	bool ok = GetFullBits(fullBits, numFullBits, words, language);
+	if (!ok)
+		return false;
+
+	//tPrintf("CCC\n");
+
+	uint32 csBits; int numCSBits;
+	return SplitFullBits(entropy, numEntropyBits, csBits, numCSBits, fullBits, numFullBits);
+}
+
+
+bool Bip39::ValidateMnemonic(const tList<tStringItem>& words, Bip39::Dictionary::Language language)
+{
+	// We get the entropy. Generate a valid full set of bits (ENT + CS), and compare agains the full bits
+	// directly from the supplied words.
+	tbit256 bits;
+	int numEntropyBits;
+
+	bool ok = GetEntropyFromWords(bits, numEntropyBits, words, language);
+	if (!ok)
+		return false;
+
+	// Generate the valid ENT+CS.
+	tuint512 validENTCS;
+	int numValidBits;
+	ok = ComputeFullBitsFromEntropy(validENTCS, numValidBits, bits, numEntropyBits);
+	if (!ok)
+		return false;
+
+	tuint512 rawENTCS;
+	int numRawBits;
+	ok = GetFullBits(rawENTCS, numRawBits, words, language);
+	if (!ok || (numValidBits != numRawBits))
+		return false;
+
+	return (validENTCS == rawENTCS);
 }
 
 

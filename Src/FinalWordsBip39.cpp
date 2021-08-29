@@ -226,24 +226,88 @@ void FinalWords::QueryUserAvailableWords(tList<tStringItem>& words, int numWords
 	{
 		tString fullWord = InputStringBip39Word(w+1);
 		tPrintf("Entered Word: %s\n", fullWord.Chars());
+		if (fullWord.IsEmpty())
+		{
+			tPrintf("Critical error entering word. Exiting.\n");
+			exit(1);
+		}
+		words.Append(new tStringItem(fullWord));
 	}
 }
 
 
 void FinalWords::DoFindFinalWords(Bip39::Dictionary::Language language)
 {
-	// WIP
-	if (language != Bip39::Dictionary::Language::English)
-	{
-		tPrintf("Currently only English supported for complete last word.\n");
-		return;
-	}
-
 	int numAvailWords = QueryUserNumAvailableWords();
 
-	// Ask user to input the available words.
 	tList<tStringItem> words;
 	QueryUserAvailableWords(words, numAvailWords);
+	tAssert(words.GetNumItems() == numAvailWords);
+
+/*
+	words.Append(new tStringItem("abandon"));
+	words.Append(new tStringItem("exile"));
+	words.Append(new tStringItem("flee"));
+	words.Append(new tStringItem("flower"));
+	words.Append(new tStringItem("exile"));
+	words.Append(new tStringItem("flee"));
+	words.Append(new tStringItem("hunt"));
+	words.Append(new tStringItem("milk"));
+	words.Append(new tStringItem("minimum"));
+	words.Append(new tStringItem("zoo"));
+	words.Append(new tStringItem("say"));
+
+	words.Append(new tStringItem("say"));
+	words.Append(new tStringItem("say"));
+	words.Append(new tStringItem("say"));
+
+	words.Append(new tStringItem("say"));
+	words.Append(new tStringItem("say"));
+	words.Append(new tStringItem("say"));
+
+	words.Append(new tStringItem("say"));
+	words.Append(new tStringItem("say"));
+	words.Append(new tStringItem("say"));
+
+	words.Append(new tStringItem("say"));
+	words.Append(new tStringItem("say"));
+	words.Append(new tStringItem("say"));
+
+	int numAvailWords = words.GetNumItems();
+*/
+
+	// The way to do this to get all possibilities is to just try them all.
+	// We _could_ just choose 0 for the last entropy, but that won't give the
+	// user the abaility to randomly choose between all possibilities.
+	int lastWordNum = 0;
+	tList<tStringItem> lastWordsList;
+	for (int w = 0; w < 2048; w++)
+	{
+		tString lastWord = Bip39::Dictionary::GetWord(w);
+		words.Append(new tStringItem(lastWord));
+		bool validated = Bip39::ValidateMnemonic(words, language);
+		if (validated)
+		{
+			tPrintf("Valid Last Word %d: %s\n", ++lastWordNum, lastWord.Chars());
+			lastWordsList.Append(new tStringItem(lastWord));
+		}
+
+		delete words.Drop();
+	}
+
+	int numEntBits = Bip39::GetNumEntropyBits(numAvailWords+1);
+	int finalChecksumBits = numEntBits / 32;
+	int finalEntropyBits = 11 - finalChecksumBits;
+	int numLastWords = 1 << finalEntropyBits;
+	tPrintf("Expected %d Last Words. Got %d Last Words.\n", numLastWords, lastWordNum);
+
+	// @todo Would user like to flip a coin a few times to choose a final word randomly?
+	// This should just whittle down the lastWordsList to 1. Still allow the user to save tho.
+	// The language may not be one that displays on terminal nicely.
+
+	bool savedFile = QueryUserSave(lastWordsList, language);
+	if (savedFile)
+		tPrintf("You saved results to a file. If you go again and save it will be overwritten.\n");
 }
 
 
@@ -253,7 +317,7 @@ int main(int argc, char** argv)
 
 ChooseLanguage:
 	Bip39::Dictionary::Language language = FinalWords::QueryUserLanguage();
-
+	// Bip39::Dictionary::Language language = Bip39::Dictionary::Language::English;
 	FinalWords::DoFindFinalWords(language);
 
 	// Go again?
