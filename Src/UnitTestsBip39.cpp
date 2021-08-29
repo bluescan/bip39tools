@@ -12,6 +12,8 @@
 // AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
 // PERFORMANCE OF THIS SOFTWARE.
 
+// This is only needed during dev to generate the C++ dictionary header files.
+// #define DEV_GEN_WORDLIST
 #include "Version.cmake.h"
 #include <iostream>
 #include <string>
@@ -307,6 +309,11 @@ int main(int argc, char** argv)
 {
 	tSystem::tSetChannels(tSystem::tChannel_Systems);
 	tPrintf("unittestsbip39 V%d.%d.%d\n", Version::Major, Version::Minor, Version::Revision);
+
+	#ifdef DEV_GEN_WORDLIST
+	Bip39::Dictionary::DevGenerateWordListHeaders();
+	return 0;
+	#endif
 
 	bool pass = UnitTestsBip39::UnitTests();
 	tPrintf("Unit Tests Result: %s\n", pass ? "PASS" : "FAIL");

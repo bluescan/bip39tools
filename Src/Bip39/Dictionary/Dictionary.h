@@ -57,6 +57,9 @@ namespace Dictionary
 	// This function takes in the 11 least significant bits and returns the associated word (lower-case).
 	// If a vaue greater than 2047 is entered (more than 11 bits), returns an empty string.
 	tString GetWord(uint32 bits, Language = Language::English);
+
+	// This is only needed during dev to generate the C++ dictionary header files.
+	void DevGenerateWordListHeaders();
 }
 
 
