@@ -50,7 +50,6 @@ int Bip39::GetNumEntropyWords(int numBits)
 bool Bip39::ComputeWordsFromEntropy
 (
 	tList<tStringItem>& words,
-	// int numWords,
 	tbit256& entropy,
 	int numBits,
 	Bip39::Dictionary::Language lang
@@ -117,8 +116,7 @@ bool Bip39::ComputeWordsFromEntropy
 		words.Append(new tStringItem(word));
 	}
 
-	// Before leaving let's clear the entropy variables.
-	// @todo Make sure this can't get optimized away.
+	// Before leaving let's clear the local entropy variables. @todo Make sure this can't get optimized away.
 	for (int w = 0; w < numWords; w++)
 		wordIndices[w] = -1;
 	for (int b = 0; b < 32; b++)

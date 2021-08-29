@@ -25,7 +25,6 @@
 #include <Math/tRandom.h>		// Only used to overwrite entropy memory when we're done with it.
 #include <System/tTime.h>		// Only used to overwrite entropy memory when we're done with it.
 #include "Bip39/Bip39.h"
-#include "Bip39/Dictionary/Dictionary.h"
 
 
 tCommand::tOption ConciseOutput	("Concise output.",	'c',	"concise");
@@ -33,13 +32,13 @@ tCommand::tOption NormalOutput	("Normal output.",	'n',	"normal");
 tCommand::tOption VerboseOutput	("Verbose output.",	'v',	"verbose");
 
 
-namespace Bip
+namespace Dice2Bip
 {
-	void QueryUserSetLanguage();
+	Bip39::Dictionary::Language QueryUserSetLanguage();
 
 	int QueryUserMode();
-	void DoCreateMnemonic();
-	void DoCompleteLastWord();
+	void DoCreateMnemonic(Bip39::Dictionary::Language);
+	void DoCompleteLastWord(Bip39::Dictionary::Language);
 	void DoSelfTest(tSystem::tChannel);
 
 	//
@@ -51,13 +50,15 @@ namespace Bip
 	const char* MedthodNames[] = { "Auto", "Simple", "Parallel", "Extractor" };
 	Method QueryUserMethod();
 
-	void QueryUserEntropyBits_Simple(tbit256& entropy, int numBits);
-	void QueryUserEntropyBits_Parallel(tbit256& entropy, int numBits);
-	void QueryUserEntropyBits_Extractor(tbit256& entropy, int numBits);
+	void QueryUserEntropyBits_Simple	(tbit256& entropy, int& numBitsGenerated, int numBitsTotal, int& rollCount);
+	void QueryUserEntropyBits_Parallel	(tbit256& entropy, int& numBitsGenerated, int numBitsTotal, int& rollCount);
+	void QueryUserEntropyBits_Extractor	(tbit256& entropy, int& numBitsGenerated, int numBitsTotal, int& rollCount);
 	#ifdef DEV_AUTO_GENERATE
-	void QueryUserEntropyBits_DevGen(int numBits);
+	void QueryUserEntropyBits_DevGen	(tbit256& entropy, int& numBitsGenerated, int numBitsTotal);
 	#endif
-	bool QueryUserSave(const tList<tStringItem>& words);	// Returns true if a file was saved.
+
+	// Returns true if a file was saved.
+	bool QueryUserSave(const tList<tStringItem>& words, Bip39::Dictionary::Language);
 
 	//
 	// Complete Last Word Functions.
@@ -77,21 +78,15 @@ namespace Bip
 	int InputInt();				// Returns -1 if couldn't read an integer >= 0.
 	int InputIntRanged(const char* question, std::function< bool(int) > inRange, int defaultVal = -1, int* inputCount = nullptr);
 
-	void ClearState();
-
 	tString InputString();
 	tString InputStringBip39Word(int wordNum, Bip39::Dictionary::Language = Bip39::Dictionary::Language::English);
-
-	uint64 ChConc = tSystem::tChannel_Verbosity0;
-	uint64 ChNorm = tSystem::tChannel_Verbosity1;
-	uint64 ChVerb = tSystem::tChannel_Verbosity2;
 
 	//
 	// State.
 	//
-	Bip39::Dictionary::Language Language	= Bip39::Dictionary::Language::English;
-	int NumEntropyBitsGenerated				= 0;
-	int RollCount							= 1;
+	uint64 ChConc = tSystem::tChannel_Verbosity0;
+	uint64 ChNorm = tSystem::tChannel_Verbosity1;
+	uint64 ChVerb = tSystem::tChannel_Verbosity2;
 };
 
 
@@ -319,8 +314,6 @@ bool Test::TestBIP39Vectors()
 		int numBits = tStd::tStrlen(entropy)*4;
 		int numWords = Bip39::GetNumEntropyWords(numBits);
 		tPrintf("   NumBits %d. NumWords %d\n", numBits, numWords);
-
-		Bip::NumEntropyBitsGenerated = numBits;
 		tList<tStringItem> words;
 
 		// Self tests must be done in engligh as the test vectors are in that language only.
@@ -350,7 +343,7 @@ bool Test::TestBIP39Vectors()
 }
 
 
-bool Bip::SelfTest()
+bool Dice2Bip::SelfTest()
 {
 	tPrintf("Performing Self-Tests\n");
 
@@ -374,17 +367,7 @@ bool Bip::SelfTest()
 }
 
 
-void Bip::ClearState()
-{
-	tPrintf(ChVerb, "Erasing Memory\n");
-
-	Language				= Bip39::Dictionary::Language::English;
-	NumEntropyBitsGenerated	= 0;
-	RollCount				= 1;
-}
-
-
-int Bip::InputInt()
+int Dice2Bip::InputInt()
 {
 	int val = -1;
 	char str[128];
@@ -397,7 +380,7 @@ int Bip::InputInt()
 }
 
 
-int Bip::InputIntRanged(const char* question, std::function< bool(int) > inRange, int defaultVal, int* inputCount)
+int Dice2Bip::InputIntRanged(const char* question, std::function< bool(int) > inRange, int defaultVal, int* inputCount)
 {
 	int val = -1;
 	const int maxTries = 100;
@@ -405,7 +388,7 @@ int Bip::InputIntRanged(const char* question, std::function< bool(int) > inRange
 	do
 	{
 		tPrintf("%s", question);
-		val = Bip::InputInt();
+		val = Dice2Bip::InputInt();
 		tries++;
 
 		if ((val == -1) && (defaultVal >= 0))
@@ -430,7 +413,7 @@ int Bip::InputIntRanged(const char* question, std::function< bool(int) > inRange
 }
 
 
-tString Bip::InputString()
+tString Dice2Bip::InputString()
 {
 	char str[128];
 	str[0] = '\0';
@@ -444,7 +427,7 @@ tString Bip::InputString()
 }
 
 
-tString Bip::InputStringBip39Word(int wordNum, Bip39::Dictionary::Language lang)
+tString Dice2Bip::InputStringBip39Word(int wordNum, Bip39::Dictionary::Language lang)
 {
 	tAssert(lang == Bip39::Dictionary::Language::English);
 	tString word;
@@ -452,7 +435,7 @@ tString Bip::InputStringBip39Word(int wordNum, Bip39::Dictionary::Language lang)
 	for (int tries = 0; tries < maxTries; tries++)
 	{
 		tPrintf("Enter Word %d:", wordNum);
-		word = Bip::InputString();
+		word = Dice2Bip::InputString();
 
 		// Word may not be the full word at this point. It's possible the user only entered the first
 		// few digits. If they entered 4, success is guaranteed. GetFullWord results in an empty string
@@ -475,7 +458,7 @@ tString Bip::InputStringBip39Word(int wordNum, Bip39::Dictionary::Language lang)
 
 
 #ifdef DEV_GEN_WORDLIST
-void Bip::GenerateWordListHeaders()
+void Dice2Bip::GenerateWordListHeaders()
 {
 	for (int lang = 0; lang < Bip39::Dictionary::GetNumLanguages(); lang++)
 	{
@@ -531,17 +514,17 @@ void Bip::GenerateWordListHeaders()
 #endif
 
 
-void Bip::QueryUserSetLanguage()
+Bip39::Dictionary::Language Dice2Bip::QueryUserSetLanguage()
 {
 	tPrintf("Language?\n");
 	for (int l = 0; l < Bip39::Dictionary::GetNumLanguages(); l++)
 		tPrintf("%d=%s\n", l, Bip39::Dictionary::GetLanguageName(Bip39::Dictionary::Language(l)).Chars());
 
-	int lang = Bip::InputIntRanged("Language [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]: ", [](int l) -> bool { return (l >= 0) && (l <= 9); }, 0);
-	Language = Bip39::Dictionary::Language(lang);
-	tPrintf("Language Set To %s\n", Bip39::Dictionary::GetLanguageName(Language).Chars());
+	int langInt = Dice2Bip::InputIntRanged("Language [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]: ", [](int l) -> bool { return (l >= 0) && (l <= 9); }, 0);
+	Bip39::Dictionary::Language	language = Bip39::Dictionary::Language(langInt);
+	tPrintf("Language Set To %s\n", Bip39::Dictionary::GetLanguageName(language).Chars());
 
-	if (Language >= Bip39::Dictionary::Language::French)
+	if (language >= Bip39::Dictionary::Language::French)
 	{
 		tPrintf
 		(
@@ -559,15 +542,17 @@ void Bip::QueryUserSetLanguage()
 			"machine.\n"
 		);
 	}
+
+	return language;
 }
 
 
-int Bip::QueryUserMode()
+int Dice2Bip::QueryUserMode()
 {
 	//WIP
 	//tPrintf(ChNorm | ChVerb | ChConc, "Operation Mode? 0=Create 1=LastWords 2=Self-Test\n");
 	tPrintf(ChNorm | ChVerb | ChConc, "Operation Mode? 0=Create 1=Self-Test\n");
-	int mode = Bip::InputIntRanged
+	int mode = Dice2Bip::InputIntRanged
 	(
 		"Mode [0, 1]: ",
 		// WIP
@@ -580,10 +565,10 @@ int Bip::QueryUserMode()
 }
 
 
-int Bip::QueryUserNumWords()
+int Dice2Bip::QueryUserNumWords()
 {
 	tPrintf(ChNorm | ChVerb, "How many words for your mnemonic phrase?\n");
-	int numWords = Bip::InputIntRanged
+	int numWords = InputIntRanged
 	(
 		"Number of Words [12, 15, 18, 21, 24]: ",
 		[](int w) -> bool { return (w == 12) || (w == 15) || (w == 18) || (w == 21) || (w == 24); },
@@ -594,7 +579,7 @@ int Bip::QueryUserNumWords()
 }
 
 
-Bip::Method Bip::QueryUserMethod()
+Dice2Bip::Method Dice2Bip::QueryUserMethod()
 {
 	tPrintf(ChVerb | ChNorm, "What method should be used to generate your phrase?\n\n");
 	#ifdef DEV_AUTO_GENERATE
@@ -628,7 +613,7 @@ Bip::Method Bip::QueryUserMethod()
 		"   rolls to generate a 24-word mnemonic.\n"
 	);
 
-	int method = Bip::InputIntRanged
+	int method = Dice2Bip::InputIntRanged
 	(
 		#ifdef DEV_AUTO_GENERATE
 		"Method 0=Auto 1=Simple 2=Parallel 3=Extractor [0, 1, 2, 3]: ",
@@ -643,23 +628,23 @@ Bip::Method Bip::QueryUserMethod()
 }
 
 
-void Bip::QueryUserEntropyBits_Simple(tbit256& entropy, int numBits)
+void Dice2Bip::QueryUserEntropyBits_Simple(tbit256& entropy, int& numBitsGenerated, int numBitsTotal, int& rollCount)
 {
 	int roll = 0;
 	do
 	{
-		char rollText[64]; tsPrintf(rollText, "Roll#%03d [1, 2, 3, 4, 5, 6]: ", RollCount);
-		roll = Bip::InputIntRanged
+		char rollText[64]; tsPrintf(rollText, "Roll#%03d [1, 2, 3, 4, 5, 6]: ", rollCount);
+		roll = Dice2Bip::InputIntRanged
 		(
 			rollText,
 			[](int r) -> bool { return (r >= 0) && (r <= 6); },
-			-1, &RollCount
+			-1, &rollCount
 		);
 	}
 	while (roll >= 5);
 
-	tAssert((numBits - NumEntropyBitsGenerated) >= 2);
-	int bitIndex = numBits-NumEntropyBitsGenerated-1;
+	tAssert((numBitsTotal - numBitsGenerated) >= 2);
+	int bitIndex = numBitsTotal-numBitsGenerated-1;
 	switch (roll)
 	{
 		case 1:				// 00
@@ -679,29 +664,29 @@ void Bip::QueryUserEntropyBits_Simple(tbit256& entropy, int numBits)
 			entropy.SetBit(bitIndex-1, true);
 			break;
 	}
-	NumEntropyBitsGenerated += 2;
+	numBitsGenerated += 2;
 }
 
 
-void Bip::QueryUserEntropyBits_Parallel(tbit256& entropy, int numBits)
+void Dice2Bip::QueryUserEntropyBits_Parallel(tbit256& entropy, int& numBitsGenerated, int numBitsTotal, int& rollCount)
 {
 	uint32 base6 = 0;
 	do
 	{
-		char rollLText[64]; tsPrintf(rollLText, "Roll#%03d Left Die  [1, 2, 3, 4, 5, 6]: ", RollCount);
-		int rollL = Bip::InputIntRanged(rollLText, [](int r) -> bool { return (r >= 1) && (r <= 6); });
+		char rollLText[64]; tsPrintf(rollLText, "Roll#%03d Left Die  [1, 2, 3, 4, 5, 6]: ", rollCount);
+		int rollL = Dice2Bip::InputIntRanged(rollLText, [](int r) -> bool { return (r >= 1) && (r <= 6); });
 
-		char rollRText[64]; tsPrintf(rollRText, "Roll#%03d Right Die [1, 2, 3, 4, 5, 6]: ", RollCount);
-		int rollR = Bip::InputIntRanged(rollRText, [](int r) -> bool { return (r >= 1) && (r <= 6); });
+		char rollRText[64]; tsPrintf(rollRText, "Roll#%03d Right Die [1, 2, 3, 4, 5, 6]: ", rollCount);
+		int rollR = Dice2Bip::InputIntRanged(rollRText, [](int r) -> bool { return (r >= 1) && (r <= 6); });
 
-		RollCount++;		
+		rollCount++;
 		base6 = ((rollL-1)*6) + (rollR-1);
 		tPrintf(ChVerb, "Base6 Value: %d\n", base6);
 	}
 	while (base6 >= 32);
 
 	// Since the number of bits required may not be divisible by 5, make sure we don't go over.
-	int bitCount = numBits-NumEntropyBitsGenerated;
+	int bitCount = numBitsTotal-numBitsGenerated;
 	int bitIndex = bitCount - 1;
 
 	if (bitCount > 5) bitCount = 5;
@@ -711,22 +696,22 @@ void Bip::QueryUserEntropyBits_Parallel(tbit256& entropy, int numBits)
 		entropy.SetBit(bitIndex-b, bit);
 	}
 
-	NumEntropyBitsGenerated += bitCount;
+	numBitsGenerated += bitCount;
 }
 
 
-void Bip::QueryUserEntropyBits_Extractor(tbit256& entropy, int numBits)
+void Dice2Bip::QueryUserEntropyBits_Extractor(tbit256& entropy, int& numBitsGenerated, int numBitsTotal, int& rollCount)
 {
 	int roll1 = 0;
 	int roll2 = 0;
 
 	do
 	{
-		char roll1Text[64]; tsPrintf(roll1Text, "Roll#%03d [1, 2, 3, 4, 5, 6]: ", RollCount);
-		roll1 = Bip::InputIntRanged(roll1Text, [](int r) -> bool { return (r >= 1) && (r <= 6); }, -1, &RollCount);
+		char roll1Text[64]; tsPrintf(roll1Text, "Roll#%03d [1, 2, 3, 4, 5, 6]: ", rollCount);
+		roll1 = Dice2Bip::InputIntRanged(roll1Text, [](int r) -> bool { return (r >= 1) && (r <= 6); }, -1, &rollCount);
 
-		char roll2Text[64]; tsPrintf(roll2Text, "Roll#%03d [1, 2, 3, 4, 5, 6]: ", RollCount);
-		roll2 = Bip::InputIntRanged(roll2Text, [](int r) -> bool { return (r >= 1) && (r <= 6); }, -1, &RollCount);
+		char roll2Text[64]; tsPrintf(roll2Text, "Roll#%03d [1, 2, 3, 4, 5, 6]: ", rollCount);
+		roll2 = Dice2Bip::InputIntRanged(roll2Text, [](int r) -> bool { return (r >= 1) && (r <= 6); }, -1, &rollCount);
 	}
 	while (roll1 == roll2);
 	tAssert(roll1 != roll2);
@@ -734,48 +719,48 @@ void Bip::QueryUserEntropyBits_Extractor(tbit256& entropy, int numBits)
 	bool bit = (roll1 < roll2) ? false : true;
 	tPrintf(ChVerb, "Generated a %s\n", bit ? "1" : "0");
 
-	int bitIndex = numBits-NumEntropyBitsGenerated-1;
+	int bitIndex = numBitsTotal-numBitsGenerated-1;
 	entropy.SetBit(bitIndex-0, bit);
 
-	NumEntropyBitsGenerated += 1;
+	numBitsGenerated += 1;
 }
 
 
 #ifdef DEV_AUTO_GENERATE
-void Bip::QueryUserEntropyBits_DevGen(int numBits)
+void Dice2Bip::QueryUserEntropyBits_DevGen(tbit256& entropy, int& numBitsGenerated, int numBitsTotal)
 {
-	tAssert((numBits - NumEntropyBitsGenerated) >= 32);
-	int bitIndex = numBits-NumEntropyBitsGenerated-1;
+	tAssert((numBitsTotal - numBitsGenerated) >= 32);
+	int bitIndex = numBitsTotal-numBitsGenerated-1;
 
 	uint32 randBits = tMath::tRandom::tGetBits();
 	for (int b = 0; b < 32; b++)
 	{
 		bool bit = (randBits & (1 << b)) ? true : false;
-		Entropy.SetBit(bitIndex-b, bit);
+		entropy.SetBit(bitIndex-b, bit);
 	}
 
-	NumEntropyBitsGenerated += 32;
+	numBitsGenerated += 32;
 }
 #endif
 
 
-bool Bip::QueryUserSave(const tList<tStringItem>& words)
+bool Dice2Bip::QueryUserSave(const tList<tStringItem>& words, Bip39::Dictionary::Language language)
 {
 	bool savedFile = false;
 
 	// Should give option to save if language that doesn't dislay correctly in console chosen.
-	if (Language >= Bip39::Dictionary::Language::French)
+	if (language >= Bip39::Dictionary::Language::French)
 	{
 		const char* wordSaveFile = "WordListResult.txt";
 		tPrintf
 		(
-			Bip::ChVerb | Bip::ChNorm,
+			Dice2Bip::ChVerb | Dice2Bip::ChNorm,
 			"Since you chose a language that has special characters, do you want\n"
 			"to save it as \"%s\"\n", wordSaveFile
 		);
 
 		char saveText[64]; tsPrintf(saveText, "Save to %s? 0=No 1=Yes [0, 1]: ", wordSaveFile);
-		int doSave = Bip::InputIntRanged(saveText, [](int s) -> bool { return (s == 0) || (s == 1); });
+		int doSave = Dice2Bip::InputIntRanged(saveText, [](int s) -> bool { return (s == 0) || (s == 1); });
 		if (doSave == 1)
 		{
 			tPrintf("Saving words.\n");
@@ -798,10 +783,10 @@ bool Bip::QueryUserSave(const tList<tStringItem>& words)
 }
 
 
-int Bip::QueryUserNumAvailableWords()
+int Dice2Bip::QueryUserNumAvailableWords()
 {
 	tPrintf(ChNorm | ChVerb, "How many words do you already have?\n");
-	int numAvailWords = Bip::InputIntRanged
+	int numAvailWords = Dice2Bip::InputIntRanged
 	(
 		"Number of Words [11, 14, 17, 20, 23]: ",
 		[](int w) -> bool { return (w == 11) || (w == 14) || (w == 17) || (w == 20) || (w == 23); },
@@ -812,58 +797,61 @@ int Bip::QueryUserNumAvailableWords()
 }
 
 
-void Bip::QueryUserAvailableWords(tList<tStringItem>& words, int numWords)
+void Dice2Bip::QueryUserAvailableWords(tList<tStringItem>& words, int numWords)
 {
 	tPrintf("Enter words. You may only enter the first 4 letters if you like.\n");
 	for (int w = 0; w < numWords; w++)
 	{
-		tString fullWord = Bip::InputStringBip39Word(w+1);
+		tString fullWord = Dice2Bip::InputStringBip39Word(w+1);
 		tPrintf("Entered Word: %s\n", fullWord.Chars());
 	}
 }
 
 
-void Bip::DoCreateMnemonic()
+void Dice2Bip::DoCreateMnemonic(Bip39::Dictionary::Language language)
 {
-	int numWords = Bip::QueryUserNumWords();
+	int numWords = Dice2Bip::QueryUserNumWords();
 	tPrintf("A %d-word mnemonic will be created.\n", numWords);
 
-	int numBits = Bip39::GetNumEntropyBits(numWords);
-	tPrintf(Bip::ChVerb, "Your %d-word mnemonic phrase will contain %d bits of entropy.\n", numWords, numBits);
+	int numBitsTotal = Bip39::GetNumEntropyBits(numWords);
+	tPrintf(Dice2Bip::ChVerb, "Your %d-word mnemonic phrase will contain %d bits of entropy.\n", numWords, numBitsTotal);
 
-	Bip::Method method = Bip::QueryUserMethod();
-	tPrintf("Using %s method.\n", Bip::MedthodNames[ int(method) ]);
+	Dice2Bip::Method method = Dice2Bip::QueryUserMethod();
+	tPrintf("Using %s method.\n", Dice2Bip::MedthodNames[ int(method) ]);
 
-	Bip::NumEntropyBitsGenerated = 0;
 	tbit256 entropy;
 	entropy.Clear();
+	int numBitsGenerated = 0;
+	int rollCount = 1;
 
-	while (Bip::NumEntropyBitsGenerated < numBits)
+	while (numBitsGenerated < numBitsTotal)
 	{
 		switch (method)
 		{
 			#ifdef DEV_AUTO_GENERATE
-			case Bip::Method::Auto:
-				Bip::QueryUserEntropyBits_DevGen(numBits);
+			case Method::Auto:
+				QueryUserEntropyBits_DevGen(entropy, numBitsGenerated, numBitsTotal);
 				break;
 			#endif
-			case Bip::Method::Simple:
-				Bip::QueryUserEntropyBits_Simple(entropy, numBits);
+			case Method::Simple:
+				QueryUserEntropyBits_Simple(entropy, numBitsGenerated, numBitsTotal, rollCount);
 				break;
-			case Bip::Method::Parallel:
-				Bip::QueryUserEntropyBits_Parallel(entropy, numBits);
+			case Method::Parallel:
+				QueryUserEntropyBits_Parallel(entropy, numBitsGenerated, numBitsTotal, rollCount);
 				break;
-			case Bip::Method::Extractor:
-				Bip::QueryUserEntropyBits_Extractor(entropy, numBits);
+			case Method::Extractor:
+				QueryUserEntropyBits_Extractor(entropy, numBitsGenerated, numBitsTotal, rollCount);
 				break;
 		}
-		tPrintf("Progress: %d of %d bits.\n", Bip::NumEntropyBitsGenerated, numBits);
-		tPrintf(Bip::ChVerb, "Entropy: %0_256|256b\n", entropy);
+		tPrintf("Progress: %d of %d bits.\n", numBitsGenerated, numBitsTotal);
+		tPrintf(Dice2Bip::ChVerb, "Entropy: %0_256|256b\n", entropy);
 	}
 
-	tAssert(Bip::NumEntropyBitsGenerated == numBits);
+	tAssert(numBitsGenerated == numBitsTotal);
 	tList<tStringItem> words;
-	Bip39::ComputeWordsFromEntropy(words, entropy, numBits, Language);
+	Bip39::ComputeWordsFromEntropy(words, entropy, numBitsTotal, language);
+
+	tPrintf(ChVerb, "Erasing Memory\n");
 	Bip39::ClearEntropy(entropy);
 	tAssert(numWords == words.GetNumItems());
 
@@ -874,16 +862,16 @@ void Bip::DoCreateMnemonic()
 		tPrintf("Word %02d: %s\n", wordNum, word->Chars());
 	tPrintf("\n");
 
-	bool savedFile = Bip::QueryUserSave(words);
+	bool savedFile = Dice2Bip::QueryUserSave(words, language);
 	if (savedFile)
 		tPrintf("You saved results to a file. If you go again and save it will be overwritten.\n");
 }
 
 
-void Bip::DoCompleteLastWord()
+void Dice2Bip::DoCompleteLastWord(Bip39::Dictionary::Language language)
 {
 	// WIP
-	if (Language != Bip39::Dictionary::Language::English)
+	if (language != Bip39::Dictionary::Language::English)
 	{
 		tPrintf("Currently only English supported for complete last word.\n");
 		return;
@@ -897,11 +885,11 @@ void Bip::DoCompleteLastWord()
 }
 
 
-void Bip::DoSelfTest(tSystem::tChannel userChannels)
+void Dice2Bip::DoSelfTest(tSystem::tChannel userChannels)
 {
 	// Since we want to curtail the output for the self-tests, we need to modify and then restore the print channels.
 	tSystem::tSetChannels(tSystem::tChannel_Systems);
-	bool pass = Bip::SelfTest();
+	bool pass = Dice2Bip::SelfTest();
 	tPrintf("Seft-Test Result: %s\n", pass ? "PASS" : "FAIL");
 	tSystem::tSetChannels(userChannels);
 }
@@ -913,13 +901,13 @@ int main(int argc, char** argv)
 	tMath::tRandom::DefaultGenerator.SetSeed( uint64(tSystem::tGetHardwareTimerCount()) );
 
 	tCommand::tParse(argc, argv);
-	tSystem::tChannel channels = tSystem::tChannel_Systems | Bip::ChNorm;
+	tSystem::tChannel channels = tSystem::tChannel_Systems | Dice2Bip::ChNorm;
 	if (VerboseOutput)
-		channels = tSystem::tChannel_Systems | Bip::ChVerb;
+		channels = tSystem::tChannel_Systems | Dice2Bip::ChVerb;
 	else if (NormalOutput)
-		channels = tSystem::tChannel_Systems | Bip::ChNorm;
+		channels = tSystem::tChannel_Systems | Dice2Bip::ChNorm;
 	else if (ConciseOutput)
-		channels = tSystem::tChannel_Systems | Bip::ChConc;
+		channels = tSystem::tChannel_Systems | Dice2Bip::ChConc;
 	tSystem::tSetChannels(channels);
 
 	if (ConciseOutput)
@@ -928,26 +916,23 @@ int main(int argc, char** argv)
 		tCommand::tPrintUsage(nullptr, "This program generates a valid BIP-39 passphrase using dice.", Version::Major, Version::Minor, Version::Revision);
 
 	#ifdef DEV_GEN_WORDLIST
-	Bip::GenerateWordListHeaders();
+	Dice2Bip::GenerateWordListHeaders();
 	return 0;
 	#endif
 
 ChooseLanguage:
-	Bip::QueryUserSetLanguage();
+	Bip39::Dictionary::Language language = Dice2Bip::QueryUserSetLanguage();
 
-	int mode = Bip::QueryUserMode();
+	int mode = Dice2Bip::QueryUserMode();
 	switch (mode)
 	{
-		case 0: Bip::DoCreateMnemonic();	break;
-		case 1: Bip::DoSelfTest(channels);	break;
-		case 2: Bip::DoCompleteLastWord();	break;
+		case 0: Dice2Bip::DoCreateMnemonic(language);	break;
+		case 1: Dice2Bip::DoSelfTest(channels);			break;
+		case 2: Dice2Bip::DoCompleteLastWord(language);	break;
 	}
 
-	// We're done let's clear the state variables.
-	Bip::ClearState();
-
 	// Go again?
-	int again = Bip::InputIntRanged("Go Again? 0=No 1=Yes [0, 1]: ", [](int a) -> bool { return (a == 0) || (a == 1); });
+	int again = Dice2Bip::InputIntRanged("Go Again? 0=No 1=Yes [0, 1]: ", [](int a) -> bool { return (a == 0) || (a == 1); });
 	if (again == 1)
 		goto ChooseLanguage;
 
