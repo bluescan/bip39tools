@@ -34,7 +34,7 @@ namespace FinalWords
 	// Complete Last Word Functions.
 	//
 	int QueryUserNumAvailableWords();
-	void QueryUserAvailableWords(tList<tStringItem>& words, int numWords);
+	void QueryUserAvailableWords(tList<tStringItem>& words, int numWords, Bip39::Dictionary::Language);
 
 	// Returns true if a file was saved.
 	bool QueryUserSave(const tList<tStringItem>& words, Bip39::Dictionary::Language);
@@ -42,7 +42,7 @@ namespace FinalWords
 	int InputInt();				// Returns -1 if couldn't read an integer >= 0.
 	int InputIntRanged(const char* question, std::function< bool(int) > inRange, int defaultVal = -1, int* inputCount = nullptr);
 	tString InputString();
-	tString InputStringBip39Word(int wordNum, Bip39::Dictionary::Language = Bip39::Dictionary::Language::English);
+	tString InputStringBip39Word(int wordNum, Bip39::Dictionary::Language);
 };
 
 
@@ -106,20 +106,19 @@ tString FinalWords::InputString()
 }
 
 
-tString FinalWords::InputStringBip39Word(int wordNum, Bip39::Dictionary::Language lang)
+tString FinalWords::InputStringBip39Word(int wordNum, Bip39::Dictionary::Language language)
 {
-	tAssert(lang == Bip39::Dictionary::Language::English);
 	tString word;
 	const int maxTries = 100;
 	for (int tries = 0; tries < maxTries; tries++)
 	{
-		tPrintf("Enter Word %d:", wordNum);
+		tPrintf("Enter Word %d: ", wordNum);
 		word = InputString();
 
 		// Word may not be the full word at this point. It's possible the user only entered the first
 		// few digits. If they entered 4, success is guaranteed. GetFullWord results in an empty string
 		// if a unique match isn't found, so it can be returned directly.
-		word = Bip39::Dictionary::GetFullWord(word, lang);
+		word = Bip39::Dictionary::GetFullWord(word, language);
 		if (word.IsEmpty())
 			tPrintf("Invalid word. Try again.\n");
 		else
@@ -219,12 +218,12 @@ int FinalWords::QueryUserNumAvailableWords()
 }
 
 
-void FinalWords::QueryUserAvailableWords(tList<tStringItem>& words, int numWords)
+void FinalWords::QueryUserAvailableWords(tList<tStringItem>& words, int numWords, Bip39::Dictionary::Language language)
 {
 	tPrintf("Enter words. You may only enter the first 4 letters if you like.\n");
 	for (int w = 0; w < numWords; w++)
 	{
-		tString fullWord = InputStringBip39Word(w+1);
+		tString fullWord = InputStringBip39Word(w+1, language);
 		tPrintf("Entered Word: %s\n", fullWord.Chars());
 		if (fullWord.IsEmpty())
 		{
@@ -241,7 +240,7 @@ void FinalWords::DoFindFinalWords(Bip39::Dictionary::Language language)
 	int numAvailWords = QueryUserNumAvailableWords();
 
 	tList<tStringItem> words;
-	QueryUserAvailableWords(words, numAvailWords);
+	QueryUserAvailableWords(words, numAvailWords, language);
 	tAssert(words.GetNumItems() == numAvailWords);
 
 /*
@@ -283,7 +282,7 @@ void FinalWords::DoFindFinalWords(Bip39::Dictionary::Language language)
 	tList<tStringItem> lastWordsList;
 	for (int w = 0; w < 2048; w++)
 	{
-		tString lastWord = Bip39::Dictionary::GetWord(w);
+		tString lastWord = Bip39::Dictionary::GetWord(w, language);
 		words.Append(new tStringItem(lastWord));
 		bool validated = Bip39::ValidateMnemonic(words, language);
 		if (validated)

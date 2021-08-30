@@ -108,15 +108,15 @@ tString Dictionary::GetFullWord(const tString& prefix, Language lang)
 			// If there are multiple results we can only return a single result if there is an exact match.
 			// This happens in cases like "fat" where it would also match "fatal", "father", and "fatigue".
 			// We can use GetBits since it requires an exact match.
-			for (tStringItem* word = words.First(); word; word = word->Next())
-			{
-				uint32 bits = GetBits(*word, lang);
-				if (bits != 0xFFFFFFFF)
-					return *word;
-			}
+			uint32 bits = GetBits(prefixLower, lang);
+			if (bits != 0xFFFFFFFF)
+				return prefixLower;
+
 			return tString();
 		}
 
+		// By whittling down the prefix, it allows typos after the initial uniquely
+		// specified characters. For example, "abanzzz" still works.
 		prefixLower.ExtractRight(1);
 	}
 
