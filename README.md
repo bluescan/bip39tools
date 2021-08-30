@@ -10,20 +10,20 @@ There are currently 4 tools in this mini-suite, as well as a clean implementatio
 This C++ software is for generating and decomposing valid BIP-39 mnemonics of 12, 15, 18, 21 or 24 words. All currently
 listed languages are supported.
 
-* dice2bip39
+* ***dice2bip39***
 In cases where a user would rather generate their own entropy instead of relying on an unknown or otherwise
 opaque randomness source. This tool uses physical dice for the source of randomness. Generation of 12, 15, 18, 21, and 24 word mnemonics has been tested against https://iancoleman.io/bip39/. There are 3 different methods of processing dice rolls, all of which are secure and easy to understand. The third method allows a loaded die to be used, but it takes many more rolls to eliminate the bias.
 
-* finalwordsbip39
+* ***finalwordsbip39***
 This tool generate the list of _all_ possible final valid words if you already have the previous words of a seed phrase.
 For example, perhaps you have a 12-word mnemonic and want to extend it to 24 words. Simply generate 11 more words, enter
 the 23 words into finalwordsbip39, and it will give you all candidates for the 24th word. In order to choose a random
 candidate, this tool also allows you to flip a coin a few times to choose a single final word.
 
-* unittestsbip39
+* ***unittestsbip39***
 Units tests of the Bip39, the Dictionary, and the SHA-256 implementation. Well-known test vectors are used for both SHA-256 and BIP39 verification.
 
-* validatebip39
+* ***validatebip39***
 Enter a seed phrase of 12, 15, 18, 21, or 24 words and this will tell you if it is valid or not. Valid means it checks if
 the encoded checksum accurately matches the hash of the entropy.
 
@@ -191,12 +191,15 @@ Type dice2bip39 from a command prompt or shell. The command-line options control
 ## The Bip39 and Dictionary API
 The API is completely stateless. Call any function in any order and it will work assuming the input is well-formed.
 
-The Bip39::Dictionary namespace supports all 10 current lanugages. It has functions for listing candidate words given
+The ***Bip39::Dictionary*** namespace supports all 10 current lanugages. It has functions for listing candidate words given
 a partial prefix of the full word, extracting the 11 bits of a word, determining the full unique word from a prefix,
 getting the full word from the 11 entropy bits, etc.
-Look in Src/Bip39/Dictionary/Dictionary.h
 
-The Bip39 namespace has everything else needed. It supports all BIP-0039 phrase sizes, can extract the entropy bits,
+See: ***Src/Bip39/Dictionary/Dictionary.h***
+
+
+The ***Bip39*** namespace has everything else needed. It supports all BIP-0039 phrase sizes, can extract the entropy bits,
 or the ENT+CS bits, create the full ENT+CS bits from supplied entropy (by performing the SHA hash), validate a
 seed phrase, and can deal with phrase input and output in all supported lanugages.
-Look in Src/Bip39/Bip39.h
+
+See: ***Src/Bip39/Bip39.h***
