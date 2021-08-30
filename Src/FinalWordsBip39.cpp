@@ -36,6 +36,9 @@ namespace FinalWords
 	int QueryUserNumAvailableWords();
 	void QueryUserAvailableWords(tList<tStringItem>& words, int numWords, Bip39::Dictionary::Language);
 
+	// Ask used if they want to flip a coin a few times to reduce the possible words to a single word.
+	void QueryUserCoinChoose(tList<tStringItem>& words);
+
 	// Returns true if a file was saved.
 	bool QueryUserSave(const tList<tStringItem>& words, Bip39::Dictionary::Language);
 
@@ -170,34 +173,25 @@ Bip39::Dictionary::Language FinalWords::QueryUserLanguage()
 bool FinalWords::QueryUserSave(const tList<tStringItem>& words, Bip39::Dictionary::Language language)
 {
 	bool savedFile = false;
+	const char* wordSaveFile = "FinalWordsResult.txt";
+	tPrintf("Do you want to save the words to \"%s\" ?\n", wordSaveFile);
 
-	// Should give option to save if language that doesn't dislay correctly in console chosen.
-	if (language >= Bip39::Dictionary::Language::French)
+	char saveText[64]; tsPrintf(saveText, "Save to %s? 0=No 1=Yes [0, 1]: ", wordSaveFile);
+	int doSave = InputIntRanged(saveText, [](int s) -> bool { return (s == 0) || (s == 1); });
+	if (doSave == 1)
 	{
-		const char* wordSaveFile = "FinalWordsResult.txt";
-		tPrintf
-		(
-			"Since you chose a language that has special characters, do you want\n"
-			"to save it as \"%s\"\n", wordSaveFile
-		);
-
-		char saveText[64]; tsPrintf(saveText, "Save to %s? 0=No 1=Yes [0, 1]: ", wordSaveFile);
-		int doSave = InputIntRanged(saveText, [](int s) -> bool { return (s == 0) || (s == 1); });
-		if (doSave == 1)
-		{
-			tPrintf("Saving words.\n");
-			tFileHandle file = tSystem::tOpenFile(wordSaveFile, "wb");
-			int numWords = words.GetNumItems();
-			int wordNum = 1;
-			for (tStringItem* word = words.First(); word; word = word->Next(), wordNum++)
-				tfPrintf(file, "Word %02d: %s\n", wordNum, word->Chars());
-			tSystem::tCloseFile(file);
-			savedFile = true;
-		}
-		else
-		{
-			tPrintf("Not saving words.\n");
-		}
+		tPrintf("Saving words.\n");
+		tFileHandle file = tSystem::tOpenFile(wordSaveFile, "wb");
+		int numWords = words.GetNumItems();
+		int wordNum = 1;
+		for (tStringItem* word = words.First(); word; word = word->Next(), wordNum++)
+			tfPrintf(file, "Word %02d: %s\n", wordNum, word->Chars());
+		tSystem::tCloseFile(file);
+		savedFile = true;
+	}
+	else
+	{
+		tPrintf("Not saving words.\n");
 	}
 
 	return savedFile;
@@ -232,6 +226,44 @@ void FinalWords::QueryUserAvailableWords(tList<tStringItem>& words, int numWords
 		}
 		words.Append(new tStringItem(fullWord));
 	}
+}
+
+
+void FinalWords::QueryUserCoinChoose(tList<tStringItem>& words)
+{
+	int numWords = words.GetNumItems();
+	tAssert( tMath::tIsPower2(numWords) );
+	int requiredFlips = tMath::tLog2(numWords);
+
+	tPrintf("Do %d coin flips to randomly choose a single word?\n", requiredFlips);
+	int doFlips = InputIntRanged("Do coin flips? 0=No 1=Yes [0, 1]: ", [](int c) -> bool { return (c == 0) || (c == 1); }, 0 );
+	if (!doFlips)
+		return;
+
+	int flipNum = 0;
+	while (words.GetNumItems() > 1)
+	{
+		tPrintf("Coin Flip %d. ", ++flipNum);
+		int flip = InputIntRanged("Enter 1=Heads 2=Tails [1, 2]: ", [](int c) -> bool { return (c == 1) || (c == 2); } );
+		int numToRemove = words.GetNumItems() / 2;
+
+		// If heads remove the first half of the words from the list.
+		if (flip == 1)
+		{
+			for (int w = 0; w < numToRemove; w++)
+				delete words.Remove();
+		}
+
+		// If tails remove the last half of the words from the list.
+		else if (flip == 2)
+		{
+			for (int w = 0; w < numToRemove; w++)
+				delete words.Drop();
+		}
+	}
+
+	tAssert(words.GetNumItems() == 1);
+	tPrintf("Random Single Last Word: %s\n", words.First()->Chars());
 }
 
 
@@ -300,9 +332,8 @@ void FinalWords::DoFindFinalWords(Bip39::Dictionary::Language language)
 	int numLastWords = 1 << finalEntropyBits;
 	tPrintf("Expected %d Last Words. Got %d Last Words.\n", numLastWords, lastWordNum);
 
-	// @todo Would user like to flip a coin a few times to choose a final word randomly?
-	// This should just whittle down the lastWordsList to 1. Still allow the user to save tho.
-	// The language may not be one that displays on terminal nicely.
+	// Ask user if they want to use a coin to randomly whittle the list down to a single word.
+	QueryUserCoinChoose(lastWordsList);
 
 	bool savedFile = QueryUserSave(lastWordsList, language);
 	if (savedFile)
