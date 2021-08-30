@@ -1,19 +1,33 @@
 # bip39tools
 There are currently 4 tools in this mini-suite, as well as a clean implementation of BIP-0039.
+* Bip39 and Bip39::Dictionary namespaces contain the core API.
 * dice2bip39: Generate a valid BIP-39 mnemonic using dice.
 * finalwordsbip39: Generate the list of final valid words if you already have the previous words.
 * unittestsbip39: Units tests for the Bip39, dictionary, and SHA-256 APIs.
 * validatebip39: Validate an existing mnemonic seed phrase to make sure the checksum is correct.
 
 ## Introduction
-This C++ software is for generating a valid BIP-39 mnemonic of 12, 15, 18, 21 or 24 words in cases where a user
-would rather generate their own entropy instead of relying on an unknown or otherwise opaque randomness source. This tool
-uses physical dice for the source of randomness. Generation of 12, 15, 18, 21, and 24 word mnemonics has been 
-tested against https://iancoleman.io/bip39/. A self-test option checks a number of vectors for both SHA-256 and BIP39.
-There are 3 different methods of processing dice rolls, all of which are secure and easy to understand. The third
-method allows a loaded die to be used, but it takes many more rolls to eliminate the bias.
+This C++ software is for generating and decomposing valid BIP-39 mnemonics of 12, 15, 18, 21 or 24 words. All currently
+listed languages are supported.
 
-## Entropy Generation
+* dice2bip39
+In cases where a user would rather generate their own entropy instead of relying on an unknown or otherwise
+opaque randomness source. This tool uses physical dice for the source of randomness. Generation of 12, 15, 18, 21, and 24 word mnemonics has been tested against https://iancoleman.io/bip39/. There are 3 different methods of processing dice rolls, all of which are secure and easy to understand. The third method allows a loaded die to be used, but it takes many more rolls to eliminate the bias.
+
+* finalwordsbip39
+This tool generate the list of _all_ possible final valid words if you already have the previous words of a seed phrase.
+For example, perhaps you have a 12-word mnemonic and want to extend it to 24 words. Simply generate 11 more words, enter
+the 23 words into finalwordsbip39, and it will give you all candidates for the 24th word. In order to choose a random
+candidate, this tool also allows you to flip a coin a few times to choose a single final word.
+
+* unittestsbip39
+Units tests of the Bip39, the Dictionary, and the SHA-256 implementation. Well-known test vectors are used for both SHA-256 and BIP39 verification.
+
+* validatebip39
+Enter a seed phrase of 12, 15, 18, 21, or 24 words and this will tell you if it is valid or not. Valid means it checks if
+the encoded checksum accurately matches the hash of the entropy.
+
+## Dice2Bip39 Entropy Generation
 Depending of the number and type of dice you have, different methods of generating random bits are
 available. 12 words gets you 128 bits of entropy, 15 words -> 160 bits, 18 words -> 192 bits, 21 words -> 224 bits,
 and 24 words -> 256 bits of entropy.
@@ -89,7 +103,7 @@ Final note. I have perhaps been too much of a critic. BIP-39 is great and I'm gl
 consecutive multiples of 32 (160, 192, 224, and 256) end up being divisible by 11 after adding the multiple divided
 by 32 is 'pretty neat'.
 
-## Self Tests
+## Unit Tests
 A good number of SHA-256 vectors from NIST are tested. Test vectors for BIP-39 are from Trezor's GitHub site. The
 sources of the test vectors are:
 1. https://github.com/trezor/python-mnemonic/blob/master/vectors.json
@@ -137,22 +151,22 @@ Most of the above hardware can be bought as a kit from somewhere like CanaKit. T
 8. sudo apt-get install git
 9. sudo apt-get install cmake
 10. I suggest only grabbing tagged branches that have been released in github. You can check for a later version under GitHub's releases link.
-11. Git clone --depth 1 --branch v0.9.5 https://github.com/bluescan/dice2bip39
-12. If you just want the latest, use: git clone https://github.com/bluescan/dice2bip39
-13. cd dice2bip39
+11. Git clone --depth 1 --branch v0.9.5 https://github.com/bluescan/bip39tools
+12. If you just want the latest, use: git clone https://github.com/bluescan/bip39tools
+13. cd bip39tools
 14. mkdir build
 15. cd build
 16. cmake ..           (If you want faster compile times. you could use: cmake .. -DCMAKE_BUILD_TYPE=Debug)
 17. UNPLUG ETHERNET CABLE
 18. make
 
-Thats it. Run the program.
+Thats it. All 4 tools have been created. To run the dice generator tool:
 * ./dice2bip39
 
 If you want it to autostart after logging in from a fresh reboot next time:
 1. cd /home/pi
 2. nano .bashrc
-3. Add this line to the bottom: ./dice2bip39/build/dice2bip39
+3. Add this line to the bottom: ./bip39tools/build/dice2bip39
 4. Ctrl-X to exit (hit Y to save the file)
 5. sudo shutdown -r now   (To restart and test it)
 
@@ -163,9 +177,9 @@ You now have an offline device to generate secure wallet seed phrases. Either de
 stuff, or never connect it to a network again and store it in a safe or something.
 
 ## Building
-It's a cmake C++ project. Install cmake and Visual Studio Code. Open the dice2bip39 directory VS Code. Same instructions for Windows and Linux.
+It's a cmake C++ project. Install cmake and Visual Studio Code. Open the bip39tools directory VS Code. Same instructions for Windows and Linux.
 
-## Running
+## Running Dice2Bip39
 Type dice2bip39 from a command prompt or shell. The command-line options control the amount of ouput spew.
 * ***dice2bip39 -c***
   For a concise level of output.
@@ -173,3 +187,16 @@ Type dice2bip39 from a command prompt or shell. The command-line options control
   For a normal amount of output (default).
 * ***dice2bip39 -v***
   For more detailed information including binary prints of the entropy and hash.
+
+## The Bip39 and Dictionary API
+The API is completely stateless. Call any function in any order and it will work assuming the input is well-formed.
+
+The Bip39::Dictionary namespace supports all 10 current lanugages. It has functions for listing candidate words given
+a partial prefix of the full word, extracting the 11 bits of a word, determining the full unique word from a prefix,
+getting the full word from the 11 entropy bits, etc.
+Look in Src/Bip39/Dictionary/Dictionary.h
+
+The Bip39 namespace has everything else needed. It supports all BIP-0039 phrase sizes, can extract the entropy bits,
+or the ENT+CS bits, create the full ENT+CS bits from supplied entropy (by performing the SHA hash), validate a
+seed phrase, and can deal with phrase input and output in all supported lanugages.
+Look in Src/Bip39/Bip39.h
