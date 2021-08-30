@@ -144,10 +144,14 @@ namespace UnitTestsBip39
 	};
 	constexpr int NumBIP39Vectors = sizeof(BIP39Vectors)/sizeof(*BIP39Vectors);
 
+	bool WordsMatch(const tList<tStringItem>& a, const tList<tStringItem>& b);
+	void PrintWords(const tList<tStringItem>&);
+
 	bool TestSHA256StringVectors();
 	bool TestSHA256BinaryVectors();
 	bool TestSHA256RepeatedByteVectors();
 	bool TestBIP39Vectors();
+	bool TestBIP39Dictionary();
 }
 
 
@@ -279,6 +283,64 @@ bool UnitTestsBip39::TestBIP39Vectors()
 }
 
 
+bool UnitTestsBip39::WordsMatch(const tList<tStringItem>& a, const tList<tStringItem>& b)
+{
+	if (a.GetNumItems() != b.GetNumItems())
+		return false;
+
+	tStringItem* bword = b.First();
+	for (tStringItem* aword = a.First(); aword; aword = aword->Next(), bword = bword->Next())
+	{
+		if (*aword != *bword)
+			return false;
+	}
+
+	return true;
+}
+
+
+void UnitTestsBip39::PrintWords(const tList<tStringItem>& words)
+{
+	for (tStringItem* word = words.First(); word; word = word->Next())
+		tPrintf("%s ", word->Chars());
+
+	tPrintf("\n");
+}
+
+
+bool UnitTestsBip39::TestBIP39Dictionary()
+{
+	tList<tStringItem> words;
+	Bip39::Dictionary::GetMatchingWords(words, "act", Bip39::Dictionary::Language::English);
+	tPrintf("Result: "); PrintWords(words);
+
+	tList<tStringItem> expected;
+	expected.Append(new tStringItem("act"));
+	expected.Append(new tStringItem("action"));
+	expected.Append(new tStringItem("actor"));
+	expected.Append(new tStringItem("actress"));
+	expected.Append(new tStringItem("actual"));
+	tPrintf("Expect: "); PrintWords(expected);
+
+	if (!WordsMatch(words, expected))
+		return false;
+
+	tString fullWord;
+
+	fullWord = Bip39::Dictionary::GetFullWord("act", Bip39::Dictionary::Language::English);
+	tPrintf("Prefix:act FullWord:%s Expect:act\n", fullWord.Chars());
+	if (fullWord != "act")
+		return false;
+
+	fullWord = Bip39::Dictionary::GetFullWord("abovTYPO", Bip39::Dictionary::Language::English);
+	tPrintf("Prefix:abovTYPO FullWord:%s Expect:above\n", fullWord.Chars());
+	if (fullWord != "above")
+		return false;
+
+	return true;
+}
+
+
 bool UnitTestsBip39::UnitTests()
 {
 	tPrintf("Performing Unit Tests\n");
@@ -299,6 +361,10 @@ bool UnitTestsBip39::UnitTests()
 	if (!TestBIP39Vectors())
 		return false;
 
+	tPrintf("Testing BIP39 Dictionary\n");
+	if (!TestBIP39Dictionary())
+		return false;
+
 	return true;
 }
 
@@ -314,7 +380,7 @@ int main(int argc, char** argv)
 	#endif
 
 	bool pass = UnitTestsBip39::UnitTests();
-	tPrintf("Unit Tests Result: %s\n", pass ? "PASS" : "FAIL");
+	tPrintf("\nUnit Tests Result: %s\n", pass ? "PASS" : "FAIL");
 
 	return pass ? 0 : 1;
 }
