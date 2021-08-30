@@ -22,7 +22,7 @@ namespace Bip39
 
 namespace Dictionary
 {
-	// Do not modify thisenum without also updating the EnumNames array in Dictionary.cpp. I'm not enabling
+	// Do not modify this enum without also updating the EnumNames array in Dictionary.cpp. I'm not enabling
 	// RTTI for something so trivial as this.
 	enum class Language { English, Czech, Portuguese, Italian, French, Spanish, Japanese, Korean, Chinese_Simplified, Chinese_Traditional };
 	int GetNumLanguages();

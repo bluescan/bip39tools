@@ -316,7 +316,6 @@ int main(int argc, char** argv)
 
 ChooseLanguage:
 	Bip39::Dictionary::Language language = FinalWords::QueryUserLanguage();
-	// Bip39::Dictionary::Language language = Bip39::Dictionary::Language::English;
 	FinalWords::DoFindFinalWords(language);
 
 	// Go again?

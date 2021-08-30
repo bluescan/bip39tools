@@ -21,8 +21,6 @@
 #include <Foundation/tBitField.h>
 #include <System/tPrint.h>
 #include <System/tFile.h>
-#include <Math/tRandom.h>		// Only used to overwrite entropy memory when we're done with it.
-#include <System/tTime.h>		// Only used to overwrite entropy memory when we're done with it.
 #include "Bip39/Bip39.h"
 
 

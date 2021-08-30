@@ -3,7 +3,7 @@ There are currently 4 tools in this mini-suite, as well as a clean implementatio
 * dice2bip39: Generate a valid BIP-39 mnemonic using dice.
 * finalwordsbip39: Generate the list of final valid words if you already have the previous words.
 * unittestsbip39: Units tests for the Bip39, dictionary, and SHA-256 APIs.
-* validatebip39 (In Progress): Validate an existing mnemonic seed phrase to make sure the checksumis correct.
+* validatebip39: Validate an existing mnemonic seed phrase to make sure the checksum is correct.
 
 ## Introduction
 This C++ software is for generating a valid BIP-39 mnemonic of 12, 15, 18, 21 or 24 words in cases where a user
