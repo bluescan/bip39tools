@@ -23,6 +23,8 @@
 #include <Math/tRandom.h>		// Only used to overwrite entropy memory when we're done with it.
 #include <System/tTime.h>		// Only used to overwrite entropy memory when we're done with it.
 #include "Bip39/Bip39.h"
+// #define LAST_WORD_SLOW_ALGORITHM
+// #define LAST_WORD_TEST_WORDS
 
 
 namespace FinalWords
@@ -269,13 +271,10 @@ void FinalWords::QueryUserCoinChoose(tList<tStringItem>& words)
 
 void FinalWords::DoFindFinalWords(Bip39::Dictionary::Language language)
 {
-	int numAvailWords = QueryUserNumAvailableWords();
-
 	tList<tStringItem> words;
-	QueryUserAvailableWords(words, numAvailWords, language);
-	tAssert(words.GetNumItems() == numAvailWords);
+	int numAvailWords = 0;
 
-/*
+	#ifdef LAST_WORD_TEST_WORDS
 	words.Append(new tStringItem("abandon"));
 	words.Append(new tStringItem("exile"));
 	words.Append(new tStringItem("flee"));
@@ -304,14 +303,26 @@ void FinalWords::DoFindFinalWords(Bip39::Dictionary::Language language)
 	words.Append(new tStringItem("say"));
 	words.Append(new tStringItem("say"));
 
-	int numAvailWords = words.GetNumItems();
-*/
+	numAvailWords = words.GetNumItems();
 
-	// The way to do this to get all possibilities is to just try them all.
-	// We _could_ just choose 0 for the last entropy, but that won't give the
-	// user the abaility to randomly choose between all possibilities.
+	#else
+	numAvailWords = QueryUserNumAvailableWords();
+	QueryUserAvailableWords(words, numAvailWords, language);
+	tAssert(words.GetNumItems() == numAvailWords);
+
+	#endif
+
 	int lastWordNum = 0;
 	tList<tStringItem> lastWordsList;
+	int numEntropyBits = Bip39::GetNumEntropyBits(numAvailWords+1);
+	int finalChecksumBits = Bip39::GetNumChecksumBits(numAvailWords+1);
+	int finalEntropyBits = 11 - finalChecksumBits;
+	int numLastWords = 1 << finalEntropyBits;
+
+	#ifdef LAST_WORD_SLOW_ALGORITHM
+	// One way to do this to get all possibilities is to just try them all.
+	// We _could_ just choose 0 for the last entropy, but that won't give the
+	// user the abaility to randomly choose between all possibilities.
 	for (int w = 0; w < 2048; w++)
 	{
 		tString lastWord = Bip39::Dictionary::GetWord(w, language);
@@ -323,13 +334,51 @@ void FinalWords::DoFindFinalWords(Bip39::Dictionary::Language language)
 			lastWordsList.Append(new tStringItem(lastWord));
 		}
 
+		// Remove last word so we can try a new one.
 		delete words.Drop();
 	}
 
-	int numEntBits = Bip39::GetNumEntropyBits(numAvailWords+1);
-	int finalChecksumBits = numEntBits / 32;
-	int finalEntropyBits = 11 - finalChecksumBits;
-	int numLastWords = 1 << finalEntropyBits;
+	#else
+	// This method is faster. Create only the possible entropy bit sets and generate the CS/words.
+	tuint512 rawBits;
+	int numRawBits;
+	bool ok = Bip39::GetRawBits(rawBits, numRawBits, words, language);
+
+	// Since we retry on invalid words, this should always succeed.
+	tAssert(ok);
+
+	for (uint32 w = 0; w < numLastWords; w++)
+	{
+		tuint512 entropy = rawBits;
+		entropy <<= finalEntropyBits;
+		entropy = entropy | tuint512(w);
+
+		tbit256 ent;
+		ent.SetAll(false);
+		for (int e = 0; e < numEntropyBits/32; e++)
+			ent.GetElement(e) = entropy.GetRawElement(e);
+
+		tList<tStringItem> words;
+		bool ok = Bip39::ComputeWordsFromEntropy(words, ent, numEntropyBits, language);
+		Bip39::ClearEntropy(ent);
+		if (ok)
+		{
+			bool valid = Bip39::ValidateMnemonic(words, language);
+			if (!valid)
+			{
+				tPrintf("Valididate word list failed. Skipping word.\n");
+				continue;
+			}
+			tStringItem* lastWord = words.Drop();
+			if (lastWord)
+			{
+				tPrintf("Valid Last Word %d: %s\n", ++lastWordNum, lastWord->Chars());
+				lastWordsList.Append(lastWord);
+			}
+		}
+	}
+	#endif
+
 	tPrintf("Expected %d Last Words. Got %d Last Words.\n", numLastWords, lastWordNum);
 
 	// Ask user if they want to use a coin to randomly whittle the list down to a single word.

@@ -39,23 +39,43 @@ int GetNumWords(int numEntropyBits);
 int GetNumWordsFromFullBits(int numFullBits);
 
 // Compute ENT+CS from just ENT. This is the workhorse that computes the SHA-256 for the CS.
-bool ComputeFullBitsFromEntropy(tuint512& fullBits, int& numFullBits, tbit256& entropy, int numEntropyBits);
+bool ComputeFullBitsFromEntropy(tuint512& fullBits, int& numFullBits, const tbit256& entropy, int numEntropyBits);
+
+// Convert the full compliment of bits (entropy+CS) into words of the supplied language.
+bool ComputeWordsFromFullBits
+(
+	tList<tStringItem>& words,
+	const tuint512& fullBits,		// We pass a ref here so we don't stamp critical info all over memory,
+	int numFullBits,
+	Bip39::Dictionary::Language
+);
 
 // Fills in the supplied word list given the entropy you want to represent as a mnemonic. This basically just calls
-// ComputeFullBitsFromEntropy and converts the result into the words (in the given language). Returns success.
+// ComputeFullBitsFromEntropy followed by ComputeWordsFromFullBits. Returns success.
 bool ComputeWordsFromEntropy
 (
 	tList<tStringItem>& words,
-	tbit256& entropy,			// We pass a ref here so we don't stamp critical info all over memory,
+	const tbit256& entropy,			// We pass a ref here so we don't stamp critical info all over memory,
 	int numEntropyBits,
 	Bip39::Dictionary::Language
 );
 
 // Returns the full compliment of bits (ENT and CS) directly from the words.
+// Expects the number of words to be 12, 15, 18, 21, or 24.
 bool GetFullBits
 (
 	tuint512& fullBits,
 	int& numFullBits,
+	const tList<tStringItem>& words,
+	Bip39::Dictionary::Language
+);
+
+// Gets the raw bitpattern for an arbitrary number of words. Only fails if a word can't be found
+// or you submit more than 46 words. 0 words returns true with numRawBits set to 0.
+bool GetRawBits
+(
+	tuint512& rawBits,
+	int& numRawBits,
 	const tList<tStringItem>& words,
 	Bip39::Dictionary::Language
 );
@@ -65,7 +85,7 @@ bool SplitFullBits
 (
 	tbit256& entropy,	int& numENTBits,
 	uint32& checksum,	int& numCSBits,
-	tuint512 fullBits,
+	const tuint512& fullBits,
 	int numFullBits
 );
 
@@ -85,5 +105,7 @@ bool ValidateMnemonic(const tList<tStringItem>& words, Bip39::Dictionary::Langua
 // Overwrite the entropyBits in memory many times to help make it more secure.
 void ClearEntropy(tbit256& entropyBits);
 
+// Overwrite the (full) bits in memory many times to help make it more secure.
+void ClearBits(tuint512& bits);
 
 }
