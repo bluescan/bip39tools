@@ -99,6 +99,9 @@ bool GetEntropyFromWords
 	Bip39::Dictionary::Language
 );
 
+// Returns true if the number of words is 12, 15, 18, 21, or 24.
+bool IsValidNumWords(int numWords);
+
 // Returns true if the CS is valid for the supplied word list.
 bool ValidateMnemonic(const tList<tStringItem>& words, Bip39::Dictionary::Language);
 

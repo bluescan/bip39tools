@@ -39,8 +39,10 @@ namespace Dictionary
 	// function. This also allows something like "aba" to go to "abandon", since in this case only 3 letters are needed
 	// to uniquely identify the word.
 	//
-	// Lastly, if you enter the full exact word in the first place, it still works and returns it. Prefix is case
-	// insensitive. Returned word is always lower-case.
+	// If you enter the full exact word in the first place, it still works and returns it. Prefix is case insensitive.
+	// Returned word is always lower-case. As a final example, the word "golf" will be turned into "gold". This is
+	// because even though 'golf' is not a valid Bip39 word, the first 3 letters (gol) still uniquely identify (in this
+	// case) the word "gold". It couldn't be anything else.
 	tString GetFullWord(const tString& prefix, Language);
 
 	// This function returns matches to the supplied prefix (if there are any). This can be useful if you

@@ -115,7 +115,7 @@ bool Bip39::ComputeFullBitsFromEntropy(tuint512& fullBits, int& numFullBits, con
 	// Actually, we'll just use 512, as the tPrintf supports that size.
 	fullBits.MakeZero();
 	for (int r = 0; r < entropy.GetNumElements(); r++)
-		fullBits.RawElement(r) = entropy.GetElementValue(r);
+		fullBits.SetElement(r, entropy.GetElement(r));
 
 	fullBits <<= numHashBitsNeeded;
 	fullBits |= firstBits;
@@ -275,7 +275,7 @@ bool Bip39::SplitFullBits
 
 	entropy.SetAll(false);
 	for (int e = 0; e < numENTBits/32; e++)
-		entropy.GetElement(e) = full.GetRawElement(e);
+		entropy.SetElement(e, full.GetElement(e));
 
 	return true;
 }
@@ -301,8 +301,17 @@ bool Bip39::GetEntropyFromWords
 }
 
 
+bool Bip39::IsValidNumWords(int numWords)
+{
+	return (numWords >= 12) && (numWords <= 24) && !(numWords % 3);
+}
+
+
 bool Bip39::ValidateMnemonic(const tList<tStringItem>& words, Bip39::Dictionary::Language language)
 {
+	if (!IsValidNumWords(words.GetNumItems()))
+		return false;
+		
 	// We get the entropy. Generate a valid full set of bits (ENT + CS), and compare agains the full bits
 	// directly from the supplied words.
 	tbit256 bits;
@@ -333,7 +342,7 @@ void Bip39::ClearEntropy(tbit256& entropyBits)
 {
 	// We're going to overwrite the entropy memory a few times here to protect against hardware snooping
 	// and memory persistence. Entropy is declared volatile. @todo Check asm for Clang, GCC, and MSVC.
-	volatile uint32* entropy = &entropyBits.GetElement(0);
+	volatile uint32* entropy = entropyBits.Elements();
 	int numElems = entropyBits.GetNumElements();
 	for (int e = 0; e < numElems; e++) entropy[e] = 0x00000000;
 	for (int e = 0; e < numElems; e++) entropy[e] = tMath::tRandom::tGetBits();
@@ -347,8 +356,8 @@ void Bip39::ClearBits(tuint512& fullBits)
 {
 	// We're going to overwrite the bits a few times here to protect against hardware snooping
 	// and memory persistence. Bits is declared volatile. @todo Check asm for Clang, GCC, and MSVC.
-	volatile uint32* bits = &fullBits.RawElement(0);
-	int numElems = fullBits.GetRawCount();
+	volatile uint32* bits = fullBits.Elements();
+	int numElems = fullBits.GetNumElements();
 	for (int e = 0; e < numElems; e++) bits[e] = 0x00000000;
 	for (int e = 0; e < numElems; e++) bits[e] = tMath::tRandom::tGetBits();
 	for (int e = 0; e < numElems; e++) bits[e] = 0xFFFFFFFF;

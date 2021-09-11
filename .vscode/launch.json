@@ -8,7 +8,6 @@
 	"version": "0.2.0",
 	"configurations":
 	[
-
 		{
 			"name": "Launch GDB dice2bit39",
 			"type": "cppdbg",
@@ -54,6 +53,26 @@
 			"type": "cppdbg",
 			"request": "launch",
 			"program": "${workspaceFolder}/build/unittestsbip39",
+			"args": [],
+			"stopAtEntry": false,
+			"cwd": "${workspaceFolder}/build",
+			"environment": [],
+			"externalConsole": false,
+			"MIMode": "gdb",
+			"setupCommands":
+			[
+				{
+					"description": "Enable pretty-printing for gdb",
+					"text": "-enable-pretty-printing",
+					"ignoreFailures": true
+				}
+			]
+		},
+		{
+			"name": "Launch GDB validatebip39",
+			"type": "cppdbg",
+			"request": "launch",
+			"program": "${workspaceFolder}/build/validatebip39",
 			"args": [],
 			"stopAtEntry": false,
 			"cwd": "${workspaceFolder}/build",

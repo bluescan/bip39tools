@@ -248,7 +248,7 @@ bool UnitTestsBip39::TestBIP39Vectors()
 		const char* mnemonic	= BIP39Vectors[t].Mnemonic;
 		tPrintf("Entropy [%064s]\n", entropy);
 
-		entropyBits.Set(entropy, 16);
+		entropyBits.Set(entropy);
 		tPrintf("   Uint [%064|256x]\n", entropyBits);
 
 		int numBits = tStd::tStrlen(entropy)*4;

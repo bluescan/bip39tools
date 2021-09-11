@@ -356,7 +356,7 @@ void FinalWords::DoFindFinalWords(Bip39::Dictionary::Language language)
 		tbit256 ent;
 		ent.SetAll(false);
 		for (int e = 0; e < numEntropyBits/32; e++)
-			ent.GetElement(e) = entropy.GetRawElement(e);
+			ent.SetElement(e, entropy.GetElement(e));
 
 		tList<tStringItem> words;
 		bool ok = Bip39::ComputeWordsFromEntropy(words, ent, numEntropyBits, language);

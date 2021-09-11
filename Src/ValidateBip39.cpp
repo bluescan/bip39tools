@@ -26,6 +26,7 @@ namespace Validate
 {
 	Bip39::Dictionary::Language QueryUserLanguage();
 	bool CheckMnemonic(Bip39::Dictionary::Language language);
+	bool CheckMnemonic(tList<tStringItem>& words);
 
 	int QueryUserNumWords();
 	void QueryUserWords(tList<tStringItem>& words, int numWords, Bip39::Dictionary::Language);
@@ -186,9 +187,62 @@ bool Validate::CheckMnemonic(Bip39::Dictionary::Language language)
 }
 
 
+bool Validate::CheckMnemonic(tList<tStringItem>& words)
+{
+	// Modify words so we have a list of full-words (in case user only entered first 4 letters).
+	for (tStringItem* wrd = words.First(); wrd; wrd = wrd->Next())
+	{
+		tString fullword = Bip39::Dictionary::GetFullWord(*wrd, Bip39::Dictionary::Language::English);
+		if (fullword.IsEmpty())
+		{
+			tPrintf("The word %s is not a valid English BIP-0039 mnemonic word.\n", wrd->Chars());
+			tPrintf("The mnemonic phrase is INVALID\n");
+			return false;
+		}
+
+		*wrd = fullword;
+	}
+
+	tPrintf("Checking full words:\n");
+	int wordNum = 1;
+	for (tStringItem* wrd = words.First(); wrd; wrd = wrd->Next())
+		tPrintf("Word %2d: %s\n", wordNum++, wrd->Chars());
+
+	bool valid = Bip39::ValidateMnemonic(words, Bip39::Dictionary::Language::English);
+	tPrintf("The mnemonic phrase is %s\n", valid ? "VALID" : "INVALID");
+	return valid;
+}
+
+
 int main(int argc, char** argv)
 {
 	tPrintf("validatebip39 V%d.%d.%d\n", Version::Major, Version::Minor, Version::Revision);
+
+	tCommand::tParam wordParams[24];
+	tCommand::tParse(argc, argv);
+
+	// If the words were entered on the command line we validate them and skip interactive entry.
+	// For this use-case currently only English is supported.
+	int numWordParams = tCommand::tGetNumPresentParameters();
+	if (numWordParams > 0)
+	{
+		if (Bip39::IsValidNumWords(numWordParams))
+		{
+			tPrintf("Checking English words entered on command line.\nOnly first 4 letters of each required.\n");
+			tList<tStringItem> words;
+			for (int w = 0; w < numWordParams; w++)
+				words.Append(new tStringItem(wordParams[w].Param));
+
+			bool valid = Validate::CheckMnemonic(words);
+			return valid ? 0 : 1;
+		}
+		else
+		{
+			tPrintf("You supplied %d words. BIP-0039 requires 12, 15, 18, 21, or 24 words.\n", numWordParams);
+			return 2;
+		}
+	}
+
 	bool validated = false;
 
 ChooseLanguage:
