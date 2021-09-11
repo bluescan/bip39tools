@@ -340,7 +340,7 @@ void FinalWords::DoFindFinalWords(Bip39::Dictionary::Language language)
 
 	#else
 	// This method is faster. Create only the possible entropy bit sets and generate the CS/words.
-	tuint512 rawBits;
+	tbit512 rawBits;
 	int numRawBits;
 	bool ok = Bip39::GetRawBits(rawBits, numRawBits, words, language);
 
@@ -349,9 +349,9 @@ void FinalWords::DoFindFinalWords(Bip39::Dictionary::Language language)
 
 	for (uint32 w = 0; w < numLastWords; w++)
 	{
-		tuint512 entropy = rawBits;
+		tbit512 entropy = rawBits;
 		entropy <<= finalEntropyBits;
-		entropy = entropy | tuint512(w);
+		entropy = entropy | tbit512(w);
 
 		tbit256 ent;
 		ent.SetAll(false);

@@ -86,7 +86,7 @@ int Bip39::GetNumWordsFromFullBits(int numFullBits)
 }
 
 
-bool Bip39::ComputeFullBitsFromEntropy(tuint512& fullBits, int& numFullBits, const tbit256& entropy, int numEntropyBits)
+bool Bip39::ComputeFullBitsFromEntropy(tbit512& fullBits, int& numFullBits, const tbit256& entropy, int numEntropyBits)
 {
 	numFullBits = GetNumFullBits( GetNumWords(numEntropyBits) );
 	if (numFullBits == 0)
@@ -113,7 +113,7 @@ bool Bip39::ComputeFullBitsFromEntropy(tuint512& fullBits, int& numFullBits, con
 	// big enough for the 24-word case: 264 bits. Just for efficiency, we'll use 288, since internally
 	// the fixed int class uses 32-bit ints to store their value (and 288 is divisible by 32).
 	// Actually, we'll just use 512, as the tPrintf supports that size.
-	fullBits.MakeZero();
+	fullBits.ClearAll();
 	for (int r = 0; r < entropy.GetNumElements(); r++)
 		fullBits.SetElement(r, entropy.GetElement(r));
 
@@ -132,7 +132,7 @@ bool Bip39::ComputeFullBitsFromEntropy(tuint512& fullBits, int& numFullBits, con
 bool Bip39::ComputeWordsFromFullBits
 (
 	tList<tStringItem>& words,
-	const tuint512& fullBits,
+	const tbit512& fullBits,
 	int numFullBits,
 	Bip39::Dictionary::Language language
 )
@@ -148,14 +148,14 @@ bool Bip39::ComputeWordsFromFullBits
 	if (!numWords)
 		return false;
 
-	tuint512 fullBitsLocal = fullBits;
+	tbit512 fullBitsLocal = fullBits;
 
 	// Next we make an array for our word indices. We will be filling it in backwards to
 	// avoid extra shift operations. We just shift by 11 each time.
 	uint32 wordIndices[24];
 	for (int w = 0; w < numWords; w++)
 	{
-		uint32 wordIndex = fullBitsLocal & tuint512(0x000007FF);
+		uint32 wordIndex = fullBitsLocal & tbit512(0x000007FF);
 		tAssert((wordIndex >= 0) && (wordIndex < 2048));
 		wordIndices[w] = wordIndex;
 		fullBitsLocal >>= 11;
@@ -185,7 +185,7 @@ bool Bip39::ComputeWordsFromEntropy
 	Bip39::Dictionary::Language language
 )
 {
-	tuint512 entropyAndChecksum;
+	tbit512 entropyAndChecksum;
 	int numFullBits;
 	bool ok = false;
 
@@ -205,7 +205,7 @@ bool Bip39::ComputeWordsFromEntropy
 // Returns the full compliment of bits from the words.
 bool Bip39::GetFullBits
 (
-	tuint512& fullBits,
+	tbit512& fullBits,
 	int& numFullBits,
 	const tList<tStringItem>& words,
 	Bip39::Dictionary::Language language
@@ -215,14 +215,14 @@ bool Bip39::GetFullBits
 	if (numFullBits == 0)
 		return false;
 
-	fullBits.MakeZero();
+	fullBits.ClearAll();
 	for (tStringItem* word = words.First(); word; word = word->Next())
 	{
 		fullBits <<= 11;
 		uint32 bits = Bip39::Dictionary::GetBits(*word, language);
 		if (bits == 0xFFFFFFFF)
 			return false;
-		fullBits = fullBits | tuint512(bits);
+		fullBits = fullBits | tbit512(bits);
 	}
 
 	return true;
@@ -231,7 +231,7 @@ bool Bip39::GetFullBits
 
 bool Bip39::GetRawBits
 (
-	tuint512& rawBits,
+	tbit512& rawBits,
 	int& numRawBits,
 	const tList<tStringItem>& words,
 	Bip39::Dictionary::Language language
@@ -241,14 +241,14 @@ bool Bip39::GetRawBits
 	if (numRawBits > 512)
 		return false;
 
-	rawBits.MakeZero();
+	rawBits.ClearAll();
 	for (tStringItem* word = words.First(); word; word = word->Next())
 	{
 		rawBits <<= 11;
 		uint32 bits = Bip39::Dictionary::GetBits(*word, language);
 		if (bits == 0xFFFFFFFF)
 			return false;
-		rawBits = rawBits | tuint512(bits);
+		rawBits = rawBits | tbit512(bits);
 	}
 
 	return true;
@@ -259,18 +259,18 @@ bool Bip39::SplitFullBits
 (
 	tbit256& entropy,	int& numENTBits,
 	uint32& checksum,	int& numCSBits,
-	const tuint512& fullBits,
+	const tbit512& fullBits,
 	int numFullBits
 )
 {
-	tuint512 full = fullBits;
+	tbit512 full = fullBits;
 	int numWords = GetNumWordsFromFullBits(numFullBits);
 	if (numWords == 0)
 		return false;
 	numCSBits = GetNumChecksumBits(numWords);
 	numENTBits = GetNumEntropyBits(numWords);
 	
-	checksum = full & ((1 << numCSBits) - 1);
+	checksum = full & tbit512((1 << numCSBits) - 1);
 	full >>= numCSBits;
 
 	entropy.SetAll(false);
@@ -291,7 +291,7 @@ bool Bip39::GetEntropyFromWords
 )
 {
 	int numFullBits;
-	tuint512 fullBits;
+	tbit512 fullBits;
 	bool ok = GetFullBits(fullBits, numFullBits, words, language);
 	if (!ok)
 		return false;
@@ -322,13 +322,13 @@ bool Bip39::ValidateMnemonic(const tList<tStringItem>& words, Bip39::Dictionary:
 		return false;
 
 	// Generate the valid ENT+CS.
-	tuint512 validENTCS;
+	tbit512 validENTCS;
 	int numValidBits;
 	ok = ComputeFullBitsFromEntropy(validENTCS, numValidBits, bits, numEntropyBits);
 	if (!ok)
 		return false;
 
-	tuint512 rawENTCS;
+	tbit512 rawENTCS;
 	int numRawBits;
 	ok = GetFullBits(rawENTCS, numRawBits, words, language);
 	if (!ok || (numValidBits != numRawBits))
@@ -352,7 +352,7 @@ void Bip39::ClearEntropy(tbit256& entropyBits)
 }
 
 
-void Bip39::ClearBits(tuint512& fullBits)
+void Bip39::ClearBits(tbit512& fullBits)
 {
 	// We're going to overwrite the bits a few times here to protect against hardware snooping
 	// and memory persistence. Bits is declared volatile. @todo Check asm for Clang, GCC, and MSVC.
@@ -362,5 +362,5 @@ void Bip39::ClearBits(tuint512& fullBits)
 	for (int e = 0; e < numElems; e++) bits[e] = tMath::tRandom::tGetBits();
 	for (int e = 0; e < numElems; e++) bits[e] = 0xFFFFFFFF;
 	for (int e = 0; e < numElems; e++) bits[e] = tMath::tRandom::tGetBits();
-	fullBits.MakeZero();
+	fullBits.ClearAll();
 }
