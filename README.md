@@ -167,11 +167,13 @@ If you want it to autostart after logging in from a fresh reboot next time:
 1. cd /home/pi
 2. nano .bashrc
 3. Add this line to the bottom: ./bip39tools/build/dice2bip39
-4. Ctrl-X to exit (hit Y to save the file)
-5. sudo shutdown -r now   (To restart and test it)
+4. Optional instead of 3 add to the bottom ./bip39tools/build/Bip39ToolsLauncher
+5. Ctrl-X to exit (hit Y to save the file)
+6. sudo shutdown -r now   (To restart and test it)
 
-Do not add the program to rc.local. Command line input is not initialized that early in the boot sequence (plus, it's better to force a login).
-The default keyboard for me was GB not US. You may need to change the layout via 'sudo raspi-config' to US.
+Do not add the program to rc.local. Command line input is not initialized that early in the boot sequence (plus, it's better to force a login). If you choose to add the Bip39ToolsLauncher to .bashrc it will allow you to choose which tool to run (in a loop). This is useful if you want to run either the last-word generator or simply validate existing words.
+
+The default PiZero keyboard for me was GB not US. You may need to change the layout via 'sudo raspi-config' to US.
 
 You now have an offline device to generate secure wallet seed phrases. Either destroy the SD card when you're done and keep the Pi for other
 stuff, or never connect it to a network again and store it in a safe or something.
