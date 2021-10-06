@@ -42,7 +42,7 @@ namespace FinalWords
 	void QueryUserCoinChoose(tList<tStringItem>& words);
 
 	// Returns true if a file was saved.
-	bool QueryUserSave(const tList<tStringItem>& words, Bip39::Dictionary::Language);
+	bool QueryUserSave(const tList<tStringItem>& words, const tList<tStringItem>& lastwords, Bip39::Dictionary::Language);
 
 	int InputInt();				// Returns -1 if couldn't read an integer >= 0.
 	int InputIntRanged(const char* question, std::function< bool(int) > inRange, int defaultVal = -1, int* inputCount = nullptr);
@@ -172,7 +172,7 @@ Bip39::Dictionary::Language FinalWords::QueryUserLanguage()
 }
 
 
-bool FinalWords::QueryUserSave(const tList<tStringItem>& words, Bip39::Dictionary::Language language)
+bool FinalWords::QueryUserSave(const tList<tStringItem>& words, const tList<tStringItem>& lastwords, Bip39::Dictionary::Language language)
 {
 	bool savedFile = false;
 	const char* wordSaveFile = "FinalWordsResult.txt";
@@ -184,10 +184,16 @@ bool FinalWords::QueryUserSave(const tList<tStringItem>& words, Bip39::Dictionar
 	{
 		tPrintf("Saving words.\n");
 		tFileHandle file = tSystem::tOpenFile(wordSaveFile, "wb");
-		int numWords = words.GetNumItems();
+
+		tfPrintf(file, "First %d Words\n", words.GetNumItems());
 		int wordNum = 1;
 		for (tStringItem* word = words.First(); word; word = word->Next(), wordNum++)
 			tfPrintf(file, "Word %02d: %s\n", wordNum, word->Chars());
+
+		tfPrintf(file, "\nValid Last Words\n");
+		int lastWordNum = 1;
+		for (tStringItem* lastword = lastwords.First(); lastword; lastword = lastword->Next(), lastWordNum++)
+			tfPrintf(file, "Last Word %02d: %s\n", lastWordNum, lastword->Chars());
 		tSystem::tCloseFile(file);
 		savedFile = true;
 	}
@@ -358,18 +364,18 @@ void FinalWords::DoFindFinalWords(Bip39::Dictionary::Language language)
 		for (int e = 0; e < numEntropyBits/32; e++)
 			ent.SetElement(e, entropy.GetElement(e));
 
-		tList<tStringItem> words;
-		bool ok = Bip39::ComputeWordsFromEntropy(words, ent, numEntropyBits, language);
+		tList<tStringItem> allwords;
+		bool ok = Bip39::ComputeWordsFromEntropy(allwords, ent, numEntropyBits, language);
 		Bip39::ClearEntropy(ent);
 		if (ok)
 		{
-			bool valid = Bip39::ValidateMnemonic(words, language);
+			bool valid = Bip39::ValidateMnemonic(allwords, language);
 			if (!valid)
 			{
 				tPrintf("Valididate word list failed. Skipping word.\n");
 				continue;
 			}
-			tStringItem* lastWord = words.Drop();
+			tStringItem* lastWord = allwords.Drop();
 			if (lastWord)
 			{
 				tPrintf("Valid Last Word %d: %s\n", ++lastWordNum, lastWord->Chars());
@@ -384,7 +390,7 @@ void FinalWords::DoFindFinalWords(Bip39::Dictionary::Language language)
 	// Ask user if they want to use a coin to randomly whittle the list down to a single word.
 	QueryUserCoinChoose(lastWordsList);
 
-	bool savedFile = QueryUserSave(lastWordsList, language);
+	bool savedFile = QueryUserSave(words, lastWordsList, language);
 	if (savedFile)
 		tPrintf("You saved results to a file. If you go again and save it will be overwritten.\n");
 }

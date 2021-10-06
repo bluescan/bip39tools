@@ -1,0 +1,32 @@
+#!/bin/bash
+# Bip39Tools Launcher
+
+while true; do
+#do
+	PS3='Choose tool: '
+	printf "\nBIP39 Tools\n"
+	options=("dice2bip39" "finalwordsbip39" "validatebip39" "unittestsbip39" "quit")
+	select opt in "${options[@]}"; do
+		case $opt in
+			"dice2bip39")
+				./dice2bip39
+				break ;;
+			"finalwordsbip39")
+				./finalwordsbip39
+				break ;;
+			"validatebip39")
+				./validatebip39
+				break ;;
+			"unittestsbip39")
+				./unittestsbip39
+				break ;;
+			"quit")
+				break 2 ;;
+			*)
+				echo "Invalid choice $REPLY"
+				break ;;
+		esac
+	done
+done
+
+echo "Exiting Bip39Tools Launcher"

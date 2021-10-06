@@ -39,7 +39,7 @@ FetchContent_Declare(
 	tacent
 	GIT_REPOSITORY https://github.com/bluescan/tacent.git
 	# GIT_TAG v0.8.11
-	GIT_TAG ae847e128066351345a1a04057538790f64761e1
+	GIT_TAG 88fd0435522d0758f78413507dd663da8a97de4c
 )
 FetchContent_MakeAvailable(tacent)
 
@@ -130,6 +130,7 @@ function(common_tool_configuration PROJNAME)
 
 endfunction(common_tool_configuration)
 
+
 ##############
 # dice2bip39 #
 ##############
@@ -166,6 +167,24 @@ add_executable(
 common_tool_configuration(${PROJECT_NAME})
 
 
+#################
+# validatebip39 #
+#################
+project(validatebip39 VERSION "${BIP39TOOLS_VERSION}" LANGUAGES C CXX)
+message(STATUS "Status -- ProjectName ${PROJECT_NAME} ProjectVersion ${PROJECT_VERSION}")
+add_executable(
+	${PROJECT_NAME}
+	Src/Version.cpp
+	Src/Bip39/Bip39.h
+	Src/Bip39/Bip39.cpp
+	Src/Bip39/Dictionary/Dictionary.h
+	Src/Bip39/Dictionary/Dictionary.cpp
+	Src/ValidateBip39.cpp
+	Src/Version.cmake.h
+)
+common_tool_configuration(${PROJECT_NAME})
+
+
 ##################
 # unittestsbip39 #
 ##################
@@ -184,19 +203,4 @@ add_executable(
 common_tool_configuration(${PROJECT_NAME})
 
 
-#################
-# validatebip39 #
-#################
-project(validatebip39 VERSION "${BIP39TOOLS_VERSION}" LANGUAGES C CXX)
-message(STATUS "Status -- ProjectName ${PROJECT_NAME} ProjectVersion ${PROJECT_VERSION}")
-add_executable(
-	${PROJECT_NAME}
-	Src/Version.cpp
-	Src/Bip39/Bip39.h
-	Src/Bip39/Bip39.cpp
-	Src/Bip39/Dictionary/Dictionary.h
-	Src/Bip39/Dictionary/Dictionary.cpp
-	Src/ValidateBip39.cpp
-	Src/Version.cmake.h
-)
-common_tool_configuration(${PROJECT_NAME})
+configure_file("Src/Bip39ToolsLauncher" "Bip39ToolsLauncher" COPYONLY)
