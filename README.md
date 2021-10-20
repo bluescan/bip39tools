@@ -3,8 +3,9 @@ There are currently 4 tools in this mini-suite, as well as a clean implementatio
 * Bip39 and Bip39::Dictionary namespaces contain the core API.
 * dice2bip39: Generate a valid BIP-39 mnemonic using dice.
 * finalwordsbip39: Generate the list of final valid words if you already have the previous words.
-* unittestsbip39: Units tests for the Bip39, dictionary, and SHA-256 APIs.
 * validatebip39: Validate an existing mnemonic seed phrase to make sure the checksum is correct.
+* makecompliantbip39: Fixes a mnemonic phrase to have a valid checksum. Optionally clears the checksum. Does not modify the entropy that is already present.
+* unittestsbip39: Units tests for the Bip39, dictionary, and SHA-256 APIs.
 
 ## Introduction
 This C++ software is for generating and decomposing valid BIP-39 mnemonics of 12, 15, 18, 21 or 24 words. All currently
@@ -20,12 +21,17 @@ For example, perhaps you have a 12-word mnemonic and want to extend it to 24 wor
 the 23 words into finalwordsbip39, and it will give you all candidates for the 24th word. In order to choose a random
 candidate, this tool also allows you to flip a coin a few times to choose a single final word.
 
-* ***unittestsbip39***
-Units tests of the Bip39, the Dictionary, and the SHA-256 implementation. Well-known test vectors are used for both SHA-256 and BIP39 verification.
-
 * ***validatebip39***
 Enter a seed phrase of 12, 15, 18, 21, or 24 words and this will tell you if it is valid or not. Valid means it checks if
 the encoded checksum accurately matches the hash of the entropy.
+
+* ***makecompliantbip39***
+Takes words you enter, extracts the entropy, and sets the checksum bits to be either a) Bip-39 compliant, or b) All zeros. Finally it re-outputs a set of words that have the same entropy, but modified checksum bits.
+Case (a) is useful if you have a mnemonic sentence that has an invalid checksum and you want to use it with a wallet that not only checks the CS, but also refuses to use your entropy unless it is Bip-39 compliant. Generally this mode takes an invalid mnemonic and makes it valid. This is the default behavior.
+Case (b) is useful if you have a wallet that is not Bip39 compliant and further requires the mnemonic sentence to also be non-compliant by checking that all\n" the CS bits are cleared. The Helium (HNT) mobile Android and iOS wallets (as of Oct 19, 2021) are examples of this non-standard requirement.
+
+* ***unittestsbip39***
+Units tests of the Bip39, the Dictionary, and the SHA-256 implementation. Well-known test vectors are used for both SHA-256 and BIP39 verification.
 
 ## Dice2Bip39 Entropy Generation
 Depending of the number and type of dice you have, different methods of generating random bits are

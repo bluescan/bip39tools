@@ -12,7 +12,7 @@
 // The second case (b) is useful if you have a wallet that is not Bip-39 compliant and, indeed, requires the mnemonic
 // sentence to also be non-compliant by having all the CS bits cleared. The Helium (HNT) mobile Android and iOS
 // wallets (as of Oct 19, 2021) are examples of this strange requirement.
-
+//
 // Copyright (c) 2021 Tristan Grimmer.
 // Permission to use, copy, modify, and/or distribute this software for any purpose with or without fee is hereby
 // granted, provided that the above copyright notice and this permission notice appear in all copies.
@@ -36,7 +36,7 @@ namespace Comply
 {
 	Bip39::Dictionary::Language QueryUserLanguage();
 	void ComplyMnemonic(Bip39::Dictionary::Language language);
-	void ComplyMnemonic(tList<tStringItem>& words);
+	void ComplyMnemonic(tList<tStringItem>& words, bool clearCS);
 
 	int QueryUserNumWords();
 	void QueryUserWords(tList<tStringItem>& words, int numWords, Bip39::Dictionary::Language);
@@ -191,12 +191,32 @@ void Comply::ComplyMnemonic(Bip39::Dictionary::Language language)
 	QueryUserWords(words, numWords, language);
 	tAssert(words.GetNumItems() == numWords);
 
-	bool valid = Bip39::ValidateMnemonic(words, language);
-	tPrintf("The mnemonic phrase is %s\n", valid ? "VALID" : "INVALID");
+	// Ask user if they want the zero mode.
+	tPrintf("Clear Checksum? Hitting enter selects NO and outputs a valid Bip-39 mnemonic.\n");
+	int zeroCS = Comply::InputIntRanged("0=No 1=Yes [0, 1]: ", [](int a) -> bool { return (a == 0) || (a == 1); }, 0);
+	bool clearCS = zeroCS ? true : false;
+
+	tbit256 entropy;
+	int numEntropyBits;
+	Bip39::GetEntropyFromWords(entropy, numEntropyBits, words, language);
+
+	tbit512 fullBits;
+	int numFullBits;
+	Bip39::ComputeFullBitsFromEntropy(fullBits, numFullBits, entropy, numEntropyBits, clearCS);
+
+	words.Clear();
+	Bip39::ComputeWordsFromFullBits(words, fullBits, numFullBits, language);
+
+	// Tell the user the new words.
+	tPrintf("\nNew words are:\n");
+	int wordNum = 1;
+	for (tStringItem* word = words.First(); word; word = word->Next(), wordNum++)
+		tPrintf("Word %02d: %s\n", wordNum, word->Chars());
+	tPrintf("\n");
 }
 
 
-void Comply::ComplyMnemonic(tList<tStringItem>& words)
+void Comply::ComplyMnemonic(tList<tStringItem>& words, bool clearCS)
 {
 	// Modify words so we have a list of full-words (in case user only entered first 4 letters).
 	for (tStringItem* wrd = words.First(); wrd; wrd = wrd->Next())
@@ -212,23 +232,67 @@ void Comply::ComplyMnemonic(tList<tStringItem>& words)
 		*wrd = fullword;
 	}
 
-	tPrintf("Checking full words:\n");
+	tPrintf("Full words entered:\n");
 	int wordNum = 1;
 	for (tStringItem* wrd = words.First(); wrd; wrd = wrd->Next())
 		tPrintf("Word %2d: %s\n", wordNum++, wrd->Chars());
 
-	bool valid = Bip39::ValidateMnemonic(words, Bip39::Dictionary::Language::English);
-	tPrintf("The mnemonic phrase is %s\n", valid ? "VALID" : "INVALID");
+	tbit256 entropy;
+	int numEntropyBits;
+	Bip39::GetEntropyFromWords(entropy, numEntropyBits, words, Bip39::Dictionary::Language::English);
+
+	tbit512 fullBits;
+	int numFullBits;
+	Bip39::ComputeFullBitsFromEntropy(fullBits, numFullBits, entropy, numEntropyBits, clearCS);
+
+	words.Clear();
+	Bip39::ComputeWordsFromFullBits(words, fullBits, numFullBits, Bip39::Dictionary::Language::English);
+
+	// Tell the user the new words.
+	tPrintf("\nNew words are:\n");
+	wordNum = 1;
+	for (tStringItem* word = words.First(); word; word = word->Next(), wordNum++)
+		tPrintf("Word %02d: %s\n", wordNum, word->Chars());
 }
 
 
 int main(int argc, char** argv)
 {
-	tPrintf("makecompliantbip39 V%d.%d.%d\n", Version::Major, Version::Minor, Version::Revision);
-	tPrintf("THIS TOOL NOT FUNCTIONAL YET.\n");
+	tPrintf("makecompliantbip39 V%d.%d.%d. Use -h for help.\n", Version::Major, Version::Minor, Version::Revision);
+	tSystem::tSetChannels(tSystem::tChannel_Systems | tSystem::tChannel_Verbosity1);
 
 	tCmdLine::tParam wordParams[24];
+	tCmdLine::tOption zeroChecksum("Force clear checksum bits.", 'z');
+	tCmdLine::tOption help("Display usage.", 'h');
 	tCmdLine::tParse(argc, argv);
+
+	if (help)
+	{
+		tCmdLine::tPrintUsage
+		(
+			nullptr,
+			"Takes words you enter, extracts the entropy, and sets the CS bits to be either:\n"
+			"a) Bip-39 compliant,\n"
+			"b) All zeros.\n"
+			"Finally it re-outputs a set of words that have the same entropy, but modified\n"
+			"checksum bits.\n"
+			"\n"
+			"Case (a) is useful if you have a mnemonic sentence that has an invalid checksum\n"
+			"and you want to use it with a wallet that not only checks the CS, but also\n"
+			"refuses to use your entropy unless it is Bip-39 compliant. Generally this mode\n"
+			"takes an invalid mnemonic and makes it valid. This is the default behavior.\n"
+			"\n"
+			"Case (b) is useful if you have a wallet that is not Bip39 compliant and further\n"
+			"requires the mnemonic sentence to also be non-compliant by checking that all\n"
+			"the CS bits are cleared. The Helium (HNT) mobile Android and iOS wallets (as of\n"
+			"Oct 19, 2021) are examples of this non-standard requirement.\n"
+			"\n"
+			"You may enter your current words as parameters in the command line. You are\n"
+			"required to supply 12, 15, 18, 21, or 24 words. If you do not supply them, an\n"
+			"interactive mode is entered requesting them."
+		);
+		return 0;
+	}
 
 	// If the words were entered on the command line we validate them and skip interactive entry.
 	// For this use-case currently only English is supported.
@@ -237,12 +301,12 @@ int main(int argc, char** argv)
 	{
 		if (Bip39::IsValidNumWords(numWordParams))
 		{
-			tPrintf("Checking English words entered on command line.\nOnly first 4 letters of each required.\n");
+			tPrintf("Using English words entered on command line.\nOnly first 4 letters of each required.\n");
 			tList<tStringItem> words;
 			for (int w = 0; w < numWordParams; w++)
 				words.Append(new tStringItem(wordParams[w].Param));
 
-			Comply::ComplyMnemonic(words);
+			Comply::ComplyMnemonic(words, zeroChecksum);
 			return 0;
 		}
 		else

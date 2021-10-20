@@ -86,7 +86,7 @@ int Bip39::GetNumWordsFromFullBits(int numFullBits)
 }
 
 
-bool Bip39::ComputeFullBitsFromEntropy(tbit512& fullBits, int& numFullBits, const tbit256& entropy, int numEntropyBits)
+bool Bip39::ComputeFullBitsFromEntropy(tbit512& fullBits, int& numFullBits, const tbit256& entropy, int numEntropyBits, bool clearChecksumBits)
 {
 	numFullBits = GetNumFullBits( GetNumWords(numEntropyBits) );
 	if (numFullBits == 0)
@@ -108,6 +108,11 @@ bool Bip39::ComputeFullBitsFromEntropy(tbit512& fullBits, int& numFullBits, cons
 	uint8 firstBits = sha256.GetByte(31);
 	firstBits >>= (8-numHashBitsNeeded);
 	tPrintf(chanVerb, "The first %d bits of the sha are: %08b\n", numHashBitsNeeded, firstBits);
+	if (clearChecksumBits)
+	{
+		tPrintf(chanNorm, "Warning. You have chosen to clear the checksum bits which will likely result\nin an invalid sentence.\n");
+		firstBits = 0;
+	}	
 
 	// We now need to store the entropy and the first bits of the sha in a single variable. We make one
 	// big enough for the 24-word case: 264 bits. Just for efficiency, we'll use 288, since internally

@@ -39,7 +39,14 @@ int GetNumWords(int numEntropyBits);
 int GetNumWordsFromFullBits(int numFullBits);
 
 // Compute ENT+CS from just ENT. This is the workhorse that computes the SHA-256 for the CS.
-bool ComputeFullBitsFromEntropy(tbit512& fullBits, int& numFullBits, const tbit256& entropy, int numEntropyBits);
+bool ComputeFullBitsFromEntropy
+(
+	tbit512& fullBits,
+	int& numFullBits,
+	const tbit256& entropy,
+	int numEntropyBits,
+	bool clearChecksumBits = false
+);
 
 // Convert the full compliment of bits (entropy+CS) into words of the supplied language.
 bool ComputeWordsFromFullBits
