@@ -1,5 +1,5 @@
 # bip39tools
-There are currently 4 tools in this mini-suite, as well as a clean implementation of BIP-0039.
+There are currently 5 tools in this mini-suite, as well as a clean implementation of BIP-0039.
 * Bip39 and Bip39::Dictionary namespaces contain the core API.
 * dice2bip39: Generate a valid BIP-39 mnemonic using dice.
 * finalwordsbip39: Generate the list of final valid words if you already have the previous words.
@@ -28,7 +28,7 @@ the encoded checksum accurately matches the hash of the entropy.
 * ***makecompliantbip39***
 Takes words you enter, extracts the entropy, and sets the checksum bits to be either a) Bip-39 compliant, or b) All zeros. Finally it re-outputs a set of words that have the same entropy, but modified checksum bits.
 Case (a) is useful if you have a mnemonic sentence that has an invalid checksum and you want to use it with a wallet that not only checks the CS, but also refuses to use your entropy unless it is Bip-39 compliant. Generally this mode takes an invalid mnemonic and makes it valid. This is the default behavior.
-Case (b) is useful if you have a wallet that is not Bip39 compliant and further requires the mnemonic sentence to also be non-compliant by checking that all\n" the CS bits are cleared. The Helium (HNT) mobile Android and iOS wallets (as of Oct 19, 2021) are examples of this non-standard requirement.
+Case (b) is useful if you have a wallet that is not Bip-39 compliant and further requires the mnemonic sentence to also be non-compliant by checking that all the CS bits are cleared. The Helium (HNT) mobile Android and iOS wallets (as of Oct 19, 2021) are examples of this non-standard requirement. You can now use dice2bip39 to create your own trusted mnemonic and then use this tool to clear the checksum bits so it can be used/restored-from in the Helium wallet.
 
 * ***unittestsbip39***
 Units tests of the Bip39, the Dictionary, and the SHA-256 implementation. Well-known test vectors are used for both SHA-256 and BIP39 verification.
