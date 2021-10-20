@@ -17,7 +17,7 @@
 #include "Version.cmake.h"
 #include <iostream>
 #include <string>
-#include <System/tCommand.h>
+#include <System/tCmdLine.h>
 #include <Foundation/tBitField.h>
 #include <System/tPrint.h>
 #include <System/tFile.h>
@@ -26,9 +26,9 @@
 #include "Bip39/Bip39.h"
 
 
-tCommand::tOption ConciseOutput	("Concise output.",	'c',	"concise");
-tCommand::tOption NormalOutput	("Normal output.",	'n',	"normal");
-tCommand::tOption VerboseOutput	("Verbose output.",	'v',	"verbose");
+tCmdLine::tOption ConciseOutput	("Concise output.",	'c',	"concise");
+tCmdLine::tOption NormalOutput	("Normal output.",	'n',	"normal");
+tCmdLine::tOption VerboseOutput	("Verbose output.",	'v',	"verbose");
 
 
 namespace Dice2Bip
@@ -427,7 +427,7 @@ int main(int argc, char** argv)
 	// The random number generator is ONLY used to clear the entropy memory so it's not hanging around in RAM.
 	tMath::tRandom::DefaultGenerator.SetSeed( uint64(tSystem::tGetHardwareTimerCount()) );
 
-	tCommand::tParse(argc, argv);
+	tCmdLine::tParse(argc, argv);
 	tSystem::tChannel channels = tSystem::tChannel_Systems | Dice2Bip::ChNorm;
 	if (VerboseOutput)
 		channels = tSystem::tChannel_Systems | Dice2Bip::ChVerb;
@@ -440,7 +440,7 @@ int main(int argc, char** argv)
 	if (ConciseOutput)
 		tPrintf("dice2bip39 V%d.%d.%d\n", Version::Major, Version::Minor, Version::Revision);
 	else
-		tCommand::tPrintUsage(nullptr, "This program generates a valid BIP-39 passphrase using dice.", Version::Major, Version::Minor, Version::Revision);
+		tCmdLine::tPrintUsage(nullptr, "This program generates a valid BIP-39 passphrase using dice.", Version::Major, Version::Minor, Version::Revision);
 
 ChooseLanguage:
 	Bip39::Dictionary::Language language = Dice2Bip::QueryUserLanguage();

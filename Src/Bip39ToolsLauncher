@@ -5,7 +5,7 @@ while true; do
 #do
 	PS3='Choose tool: '
 	printf "\nBIP39 Tools\n"
-	options=("dice2bip39" "finalwordsbip39" "validatebip39" "unittestsbip39" "quit")
+	options=("dice2bip39" "finalwordsbip39" "validatebip39" "makecompliantbip39" "unittestsbip39" "quit")
 	select opt in "${options[@]}"; do
 		case $opt in
 			"dice2bip39")
@@ -16,6 +16,9 @@ while true; do
 				break ;;
 			"validatebip39")
 				./validatebip39
+				break ;;
+			"makecompliantbip39")
+				./makecompliantbip39
 				break ;;
 			"unittestsbip39")
 				./unittestsbip39

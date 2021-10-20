@@ -17,7 +17,7 @@
 #include "Version.cmake.h"
 #include <iostream>
 #include <string>
-#include <System/tCommand.h>
+#include <System/tCmdLine.h>
 #include <Foundation/tBitField.h>
 #include <System/tPrint.h>
 #include <System/tFile.h>

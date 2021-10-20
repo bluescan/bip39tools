@@ -38,8 +38,8 @@ include(FetchContent)
 FetchContent_Declare(
 	tacent
 	GIT_REPOSITORY https://github.com/bluescan/tacent.git
-	GIT_TAG v0.8.12
-	# GIT_TAG 88fd0435522d0758f78413507dd663da8a97de4c
+	# GIT_TAG v0.8.12
+	GIT_TAG F9B2E08A63912908BC42D77C604CC4D47EBC79EB
 )
 FetchContent_MakeAvailable(tacent)
 
@@ -180,6 +180,24 @@ add_executable(
 	Src/Bip39/Dictionary/Dictionary.h
 	Src/Bip39/Dictionary/Dictionary.cpp
 	Src/ValidateBip39.cpp
+	Src/Version.cmake.h
+)
+common_tool_configuration(${PROJECT_NAME})
+
+
+######################
+# makecompliantbip39 #
+######################
+project(makecompliantbip39 VERSION "${BIP39TOOLS_VERSION}" LANGUAGES C CXX)
+message(STATUS "Status -- ProjectName ${PROJECT_NAME} ProjectVersion ${PROJECT_VERSION}")
+add_executable(
+	${PROJECT_NAME}
+	Src/Version.cpp
+	Src/Bip39/Bip39.h
+	Src/Bip39/Bip39.cpp
+	Src/Bip39/Dictionary/Dictionary.h
+	Src/Bip39/Dictionary/Dictionary.cpp
+	Src/MakeCompliantBip39.cpp
 	Src/Version.cmake.h
 )
 common_tool_configuration(${PROJECT_NAME})
