@@ -222,3 +222,4 @@ common_tool_configuration(${PROJECT_NAME})
 
 
 configure_file("Src/Bip39ToolsLauncher" "Bip39ToolsLauncher" COPYONLY)
+configure_file("Src/Bip39ToolsLauncher.bat" "Bip39ToolsLauncher.bat" COPYONLY)
