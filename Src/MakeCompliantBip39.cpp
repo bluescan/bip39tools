@@ -204,14 +204,23 @@ void Comply::ComplyMnemonic(Bip39::Dictionary::Language language)
 	int numFullBits;
 	Bip39::ComputeFullBitsFromEntropy(fullBits, numFullBits, entropy, numEntropyBits, clearCS);
 
-	words.Clear();
-	Bip39::ComputeWordsFromFullBits(words, fullBits, numFullBits, language);
+	tList<tStringItem> newWords;
+	Bip39::ComputeWordsFromFullBits(newWords, fullBits, numFullBits, language);
 
 	// Tell the user the new words.
 	tPrintf("\nNew words are:\n");
 	int wordNum = 1;
-	for (tStringItem* word = words.First(); word; word = word->Next(), wordNum++)
+	for (tStringItem* word = newWords.First(); word; word = word->Next(), wordNum++)
 		tPrintf("Word %02d: %s\n", wordNum, word->Chars());
+	tPrintf("\n");
+
+	if (*words.Last() == *newWords.Last())
+	{
+		if (clearCS)
+			tPrintf("Note: The words are the same because the checksum bits were already all zeros.\n");
+		else
+			tPrintf("Note: The words are the same because the BIP-39 checksum was already valid.\n");
+	}
 	tPrintf("\n");
 }
 
@@ -245,14 +254,23 @@ void Comply::ComplyMnemonic(tList<tStringItem>& words, bool clearCS)
 	int numFullBits;
 	Bip39::ComputeFullBitsFromEntropy(fullBits, numFullBits, entropy, numEntropyBits, clearCS);
 
-	words.Clear();
-	Bip39::ComputeWordsFromFullBits(words, fullBits, numFullBits, Bip39::Dictionary::Language::English);
+	tList<tStringItem> newWords;
+	Bip39::ComputeWordsFromFullBits(newWords, fullBits, numFullBits, Bip39::Dictionary::Language::English);
 
 	// Tell the user the new words.
 	tPrintf("\nNew words are:\n");
 	wordNum = 1;
-	for (tStringItem* word = words.First(); word; word = word->Next(), wordNum++)
+	for (tStringItem* word = newWords.First(); word; word = word->Next(), wordNum++)
 		tPrintf("Word %02d: %s\n", wordNum, word->Chars());
+
+	if (*words.Last() == *newWords.Last())
+	{
+		tPrintf("\n");
+		if (clearCS)
+			tPrintf("Note: The words are the same because the checksum bits were already all zeros.\n");
+		else
+			tPrintf("Note: The words are the same because the BIP-39 checksum was already valid.\n");
+	}
 }
 
 
