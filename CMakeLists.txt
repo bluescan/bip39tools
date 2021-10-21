@@ -131,6 +131,14 @@ function(common_tool_configuration PROJNAME)
 endfunction(common_tool_configuration)
 
 
+configure_file("Src/Bip39ToolsLauncher" "Bip39ToolsLauncher" COPYONLY)
+configure_file("Src/Bip39ToolsLauncher.bat" "Bip39ToolsLauncher.bat" COPYONLY)
+install(
+	FILES Src/Bip39ToolsLauncher Src/Bip39ToolsLauncher.bat
+	DESTINATION "${CMAKE_INSTALL_PREFIX}/Bip39ToolsInstall"
+)
+
+
 ##############
 # dice2bip39 #
 ##############
@@ -219,7 +227,3 @@ add_executable(
 	Src/Version.cmake.h
 )
 common_tool_configuration(${PROJECT_NAME})
-
-
-configure_file("Src/Bip39ToolsLauncher" "Bip39ToolsLauncher" COPYONLY)
-configure_file("Src/Bip39ToolsLauncher.bat" "Bip39ToolsLauncher.bat" COPYONLY)
