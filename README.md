@@ -172,10 +172,11 @@ Thats it. All 5 tools have been created. To run the dice generator tool:
 If you want it to autostart after logging in from a fresh reboot next time:
 1. cd /home/pi
 2. nano .bashrc
-3. Add this line to the bottom: /home/pi/bip39tools/build/dice2bip39
-4. Optional: Instead of 3 add to the bottom /home/pi/bip39tools/build/Bip39ToolsLauncher
-5. Ctrl-X to exit (hit Y to save the file)
-6. sudo shutdown -r now   (To restart and test it)
+3. Add this line to the bottom of the file: cd /home/pi/bip39tools/build
+4. Then add this line underneath: ./dice2bip39
+5. Optional: Run the launcher that can run any of the tools. Instead of 4 use ./Bip39ToolsLauncher
+6. Ctrl-X to exit (hit Y to save the file)
+7. sudo shutdown -r now   (To restart and test it)
 
 Do not add the program to rc.local. Command line input is not initialized that early in the boot sequence (plus, it's better to force a login). If you choose to add the Bip39ToolsLauncher to .bashrc it will allow you to choose which tool to run (in a loop). This is useful if you want to run either the last-word generator or simply validate existing words.
 
