@@ -172,8 +172,8 @@ Thats it. All 5 tools have been created. To run the dice generator tool:
 If you want it to autostart after logging in from a fresh reboot next time:
 1. cd /home/pi
 2. nano .bashrc
-3. Add this line to the bottom: ./bip39tools/build/dice2bip39
-4. Optional: Instead of 3 add to the bottom ./bip39tools/build/Bip39ToolsLauncher
+3. Add this line to the bottom: /home/pi/bip39tools/build/dice2bip39
+4. Optional: Instead of 3 add to the bottom /home/pi/bip39tools/build/Bip39ToolsLauncher
 5. Ctrl-X to exit (hit Y to save the file)
 6. sudo shutdown -r now   (To restart and test it)
 
