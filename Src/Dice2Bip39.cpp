@@ -129,10 +129,15 @@ Bip39::Dictionary::Language Dice2Bip::QueryUserLanguage()
 		(
 			ChVerb | ChNorm,
 			"You have chosen a language that has special characters that do not always\n"
-			"display correctly in bash, cmd, or powershell. Make sure to use a utf-8 font\n"
+			"display correctly in bash, cmd, or powershell. Make sure to use a UTF-8 font\n"
 			"such as NSimSun or MS Gothic. In Windows command you will need to run\n"
 			"\"chcp 65001\" before running this software. In PowerShell you will need to run\n"
 			"\"[Console]::OutputEncoding = [System.Text.Encoding]::UTF8\" before running.\n"
+			"In Windows 11 you have the option of setting an OS flag to use UTF-8 that\n"
+			"makes the output appear correctly:\n"
+			"Settings->Time & Language->Administrative Language Settings->Change Locale\n"
+			"Check: Beta: Use Unicode UTF-8 for worldwide language support.\n"
+			"\n"
 			"In bash just set the font correctly.\n"
 			"\n"
 			"After completing your dice rolls you will be given the option to save your\n"
@@ -440,7 +445,7 @@ int main(int argc, char** argv)
 	if (ConciseOutput)
 		tPrintf("dice2bip39 V%d.%d.%d\n", Version::Major, Version::Minor, Version::Revision);
 	else
-		tCmdLine::tPrintUsage(nullptr, "This program generates a valid BIP-39 passphrase using dice.", Version::Major, Version::Minor, Version::Revision);
+		tCmdLine::tPrintUsage(nullptr, u8"This program generates a valid BIP-39 passphrase using dice.", Version::Major, Version::Minor, Version::Revision);
 
 ChooseLanguage:
 	Bip39::Dictionary::Language language = Dice2Bip::QueryUserLanguage();

@@ -155,10 +155,15 @@ Bip39::Dictionary::Language FinalWords::QueryUserLanguage()
 		tPrintf
 		(
 			"You have chosen a language that has special characters that do not always\n"
-			"display correctly in bash, cmd, or powershell. Make sure to use a utf-8 font\n"
+			"display correctly in bash, cmd, or powershell. Make sure to use a UTF-8 font\n"
 			"such as NSimSun or MS Gothic. In Windows command you will need to run\n"
 			"\"chcp 65001\" before running this software. In PowerShell you will need to run\n"
 			"\"[Console]::OutputEncoding = [System.Text.Encoding]::UTF8\" before running.\n"
+			"In Windows 11 you have the option of setting an OS flag to use UTF-8 that\n"
+			"makes the output appear correctly:\n"
+			"Settings->Time & Language->Administrative Language Settings->Change Locale\n"
+			"Check: Beta: Use Unicode UTF-8 for worldwide language support.\n"
+			"\n"
 			"In bash just set the font correctly.\n"
 			"\n"
 			"You will be given the option to save your the set of valid last words to a file.\n"

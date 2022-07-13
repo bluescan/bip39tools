@@ -271,7 +271,7 @@ int main(int argc, char** argv)
 		tCmdLine::tPrintUsage
 		(
 			nullptr,
-			"Takes words you enter, extracts the entropy, and sets the CS bits to be either:\n"
+			u8"Takes words you enter, extracts the entropy, and sets the CS bits to be either:\n"
 			"a) Bip-39 compliant,\n"
 			"b) All zeros.\n"
 			"Finally it re-outputs a set of words that have the same entropy, but modified\n"
