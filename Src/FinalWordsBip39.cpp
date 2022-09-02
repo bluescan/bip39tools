@@ -39,10 +39,12 @@ namespace FinalWords
 	void QueryUserAvailableWords(tList<tStringItem>& words, int numWords, Bip39::Dictionary::Language);
 
 	// Ask used if they want to flip a coin a few times to reduce the possible words to a single word.
-	void QueryUserCoinChoose(tList<tStringItem>& words);
+	// If they choose yes and go through the coin tosses, the returned tString will be the randomly chosen
+	// word. If they choose no, the returned string will be empty. In both cases the input words is unmodified.
+	tString QueryUserCoinChoose(const tList<tStringItem>& words);
 
 	// Returns true if a file was saved.
-	bool QueryUserSave(const tList<tStringItem>& words, const tList<tStringItem>& lastwords, Bip39::Dictionary::Language);
+	bool QueryUserSave(const tList<tStringItem>& words, const tList<tStringItem>& lastwords, const tString& chosenWord, Bip39::Dictionary::Language);
 
 	int InputInt();				// Returns -1 if couldn't read an integer >= 0.
 	int InputIntRanged(const char* question, std::function< bool(int) > inRange, int defaultVal = -1, int* inputCount = nullptr);
@@ -177,7 +179,7 @@ Bip39::Dictionary::Language FinalWords::QueryUserLanguage()
 }
 
 
-bool FinalWords::QueryUserSave(const tList<tStringItem>& words, const tList<tStringItem>& lastwords, Bip39::Dictionary::Language language)
+bool FinalWords::QueryUserSave(const tList<tStringItem>& words, const tList<tStringItem>& lastwords, const tString& chosenWord, Bip39::Dictionary::Language language)
 {
 	bool savedFile = false;
 	const char* wordSaveFile = "FinalWordsResult.txt";
@@ -197,8 +199,20 @@ bool FinalWords::QueryUserSave(const tList<tStringItem>& words, const tList<tStr
 
 		tfPrintf(file, "\nValid Last Words\n");
 		int lastWordNum = 1;
+		int numLastWords = lastwords.GetNumItems();
 		for (tStringItem* lastword = lastwords.First(); lastword; lastword = lastword->Next(), lastWordNum++)
-			tfPrintf(file, "Last Word %02d: %s\n", lastWordNum, lastword->Chars());
+		{
+			if (numLastWords < 10)
+				tfPrintf(file, "Last Word %d: %s\n",   lastWordNum, lastword->Chars());
+			else if (numLastWords < 100)
+				tfPrintf(file, "Last Word %02d: %s\n", lastWordNum, lastword->Chars());
+			else
+				tfPrintf(file, "Last Word %03d: %s\n", lastWordNum, lastword->Chars());
+		}
+
+		if (chosenWord.IsValid())
+			tfPrintf(file, "\nChosen Last Word: %s\n", chosenWord.Chars());
+
 		tSystem::tCloseFile(file);
 		savedFile = true;
 	}
@@ -242,7 +256,7 @@ void FinalWords::QueryUserAvailableWords(tList<tStringItem>& words, int numWords
 }
 
 
-void FinalWords::QueryUserCoinChoose(tList<tStringItem>& words)
+tString FinalWords::QueryUserCoinChoose(const tList<tStringItem>& words)
 {
 	int numWords = words.GetNumItems();
 	tAssert( tMath::tIsPower2(numWords) );
@@ -251,32 +265,40 @@ void FinalWords::QueryUserCoinChoose(tList<tStringItem>& words)
 	tPrintf("Do %d coin flips to randomly choose a single word?\n", requiredFlips);
 	int doFlips = InputIntRanged("Do coin flips? 0=No 1=Yes [0, 1]: ", [](int c) -> bool { return (c == 0) || (c == 1); }, 0 );
 	if (!doFlips)
-		return;
+		return tString();
+
+	tList<tStringItem> cullWords;
+	for (tStringItem* word = words.First(); word; word = word->Next())
+		cullWords.Append(new tStringItem(*word));
+	tAssert(cullWords.GetNumItems() == words.GetNumItems());
 
 	int flipNum = 0;
-	while (words.GetNumItems() > 1)
+	while (cullWords.GetNumItems() > 1)
 	{
 		tPrintf("Coin Flip %d. ", ++flipNum);
 		int flip = InputIntRanged("Enter 1=Heads 2=Tails [1, 2]: ", [](int c) -> bool { return (c == 1) || (c == 2); } );
-		int numToRemove = words.GetNumItems() / 2;
+		int numToRemove = cullWords.GetNumItems() / 2;
 
 		// If heads remove the first half of the words from the list.
 		if (flip == 1)
 		{
 			for (int w = 0; w < numToRemove; w++)
-				delete words.Remove();
+				delete cullWords.Remove();
 		}
 
 		// If tails remove the last half of the words from the list.
 		else if (flip == 2)
 		{
 			for (int w = 0; w < numToRemove; w++)
-				delete words.Drop();
+				delete cullWords.Drop();
 		}
 	}
 
-	tAssert(words.GetNumItems() == 1);
-	tPrintf("Random Single Last Word: %s\n", words.First()->Chars());
+	tAssert(cullWords.GetNumItems() == 1);
+	tPrintf("Random Single Last Word: %s\n", cullWords.First()->Chars());
+	tString result(*cullWords.First());
+	cullWords.Empty();
+	return result;
 }
 
 
@@ -380,10 +402,17 @@ void FinalWords::DoFindFinalWords(Bip39::Dictionary::Language language)
 				tPrintf("Valididate word list failed. Skipping word.\n");
 				continue;
 			}
+
 			tStringItem* lastWord = allwords.Drop();
 			if (lastWord)
 			{
-				tPrintf("Valid Last Word %d: %s\n", ++lastWordNum, lastWord->Chars());
+				if (numLastWords < 10)
+					tPrintf("Valid Last Word %d: %s\n",   ++lastWordNum, lastWord->Chars());
+				else if (numLastWords < 100)
+					tPrintf("Valid Last Word %02d: %s\n", ++lastWordNum, lastWord->Chars());
+				else
+					tPrintf("Valid Last Word %03d: %s\n", ++lastWordNum, lastWord->Chars());
+
 				lastWordsList.Append(lastWord);
 			}
 		}
@@ -393,9 +422,9 @@ void FinalWords::DoFindFinalWords(Bip39::Dictionary::Language language)
 	tPrintf("Expected %d Last Words. Got %d Last Words.\n", numLastWords, lastWordNum);
 
 	// Ask user if they want to use a coin to randomly whittle the list down to a single word.
-	QueryUserCoinChoose(lastWordsList);
+	tString chosenWord = QueryUserCoinChoose(lastWordsList);
 
-	bool savedFile = QueryUserSave(words, lastWordsList, language);
+	bool savedFile = QueryUserSave(words, lastWordsList, chosenWord, language);
 	if (savedFile)
 		tPrintf("You saved results to a file. If you go again and save it will be overwritten.\n");
 }

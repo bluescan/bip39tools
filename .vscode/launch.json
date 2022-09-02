@@ -49,6 +49,26 @@
 			]
 		},
 		{
+			"name": "Launch GDB makecompliantbip39",
+			"type": "cppdbg",
+			"request": "launch",
+			"program": "${workspaceFolder}/build/makecompliantbip39",
+			"args": [],
+			"stopAtEntry": false,
+			"cwd": "${workspaceFolder}/build",
+			"environment": [],
+			"externalConsole": false,
+			"MIMode": "gdb",
+			"setupCommands":
+			[
+				{
+					"description": "Enable pretty-printing for gdb",
+					"text": "-enable-pretty-printing",
+					"ignoreFailures": true
+				}
+			]
+		},
+		{
 			"name": "Launch GDB unittestsbip39",
 			"type": "cppdbg",
 			"request": "launch",
@@ -92,10 +112,54 @@
 			"name": "Launch Windows dice2bip39",
 			"type": "cppvsdbg",
 			"request": "launch",
-			"program": "${workspaceFolder}/build/dice2bip39.exe",
+			"program": "${workspaceFolder}/build/Bip39ToolsInstall/dice2bip39.exe",
 			"args": [],
 			"stopAtEntry": false,
-			"cwd": "${workspaceFolder}/build",
+			"cwd": "${workspaceFolder}/build/Bip39ToolsInstall",
+			"environment": [],
+			"console": "integratedTerminal",
+		},
+		{
+			"name": "Launch Windows finalwordsbip39",
+			"type": "cppvsdbg",
+			"request": "launch",
+			"program": "${workspaceFolder}/build/Bip39ToolsInstall/finalwordsbip39.exe",
+			"args": [],
+			"stopAtEntry": false,
+			"cwd": "${workspaceFolder}/build/Bip39ToolsInstall",
+			"environment": [],
+			"console": "integratedTerminal",
+		},
+		{
+			"name": "Launch Windows makecompliantbip39",
+			"type": "cppvsdbg",
+			"request": "launch",
+			"program": "${workspaceFolder}/build/Bip39ToolsInstall/makecompliantbip39.exe",
+			"args": [],
+			"stopAtEntry": false,
+			"cwd": "${workspaceFolder}/build/Bip39ToolsInstall",
+			"environment": [],
+			"console": "integratedTerminal",
+		},
+		{
+			"name": "Launch Windows unittestsbip39",
+			"type": "cppvsdbg",
+			"request": "launch",
+			"program": "${workspaceFolder}/build/Bip39ToolsInstall/unittestsbip39.exe",
+			"args": [],
+			"stopAtEntry": false,
+			"cwd": "${workspaceFolder}/build/Bip39ToolsInstall",
+			"environment": [],
+			"console": "integratedTerminal",
+		},
+		{
+			"name": "Launch Windows validatebip39",
+			"type": "cppvsdbg",
+			"request": "launch",
+			"program": "${workspaceFolder}/build/Bip39ToolsInstall/validatebip39.exe",
+			"args": [],
+			"stopAtEntry": false,
+			"cwd": "${workspaceFolder}/build/Bip39ToolsInstall",
 			"environment": [],
 			"console": "integratedTerminal",
 		}
