@@ -218,20 +218,21 @@ int main(int argc, char** argv)
 {
 	tPrintf("validatebip39 V%d.%d.%d\n", Version::Major, Version::Minor, Version::Revision);
 
-	tCmdLine::tParam wordParams[24];
+	// The 0 means populate wordParams with all command line parame.
+	tCmdLine::tParam wordParams(0);
 	tCmdLine::tParse(argc, argv);
 
 	// If the words were entered on the command line we validate them and skip interactive entry.
 	// For this use-case currently only English is supported.
-	int numWordParams = tCmdLine::tGetNumPresentParameters();
+	int numWordParams = wordParams.Values.GetNumItems();
 	if (numWordParams > 0)
 	{
 		if (Bip39::IsValidNumWords(numWordParams))
 		{
 			tPrintf("Checking English words entered on command line.\nOnly first 4 letters of each required.\n");
 			tList<tStringItem> words;
-			for (int w = 0; w < numWordParams; w++)
-				words.Append(new tStringItem(wordParams[w].Param));
+			for (tStringItem* word = wordParams.Values.First(); word; word = word->Next())
+				words.Append(new tStringItem(*word));
 
 			bool valid = Validate::CheckMnemonic(words);
 			return valid ? 0 : 1;

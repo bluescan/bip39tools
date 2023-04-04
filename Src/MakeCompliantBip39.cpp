@@ -279,7 +279,8 @@ int main(int argc, char** argv)
 	tPrintf("makecompliantbip39 V%d.%d.%d. Use -h for help.\n", Version::Major, Version::Minor, Version::Revision);
 	tSystem::tSetChannels(tSystem::tChannel_Systems | tSystem::tChannel_Verbosity1);
 
-	tCmdLine::tParam wordParams[24];
+	// The 0 means wordParams gets populated with all params.
+	tCmdLine::tParam wordParams(0);
 	tCmdLine::tOption zeroChecksum("Force clear checksum bits.", 'z');
 	tCmdLine::tOption help("Display usage.", 'h');
 	tCmdLine::tParse(argc, argv);
@@ -314,15 +315,15 @@ int main(int argc, char** argv)
 
 	// If the words were entered on the command line we validate them and skip interactive entry.
 	// For this use-case currently only English is supported.
-	int numWordParams = tCmdLine::tGetNumPresentParameters();
+	int numWordParams = wordParams.Values.GetNumItems();
 	if (numWordParams > 0)
 	{
 		if (Bip39::IsValidNumWords(numWordParams))
 		{
 			tPrintf("Using English words entered on command line.\nOnly first 4 letters of each required.\n");
 			tList<tStringItem> words;
-			for (int w = 0; w < numWordParams; w++)
-				words.Append(new tStringItem(wordParams[w].Param));
+			for (tStringItem* word = wordParams.Values.First(); word; word = word->Next())
+				words.Append(new tStringItem(*word));
 
 			Comply::ComplyMnemonic(words, zeroChecksum);
 			return 0;
