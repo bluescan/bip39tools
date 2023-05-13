@@ -118,6 +118,9 @@ bool IsValidNumWords(int numWords);
 enum class ValidateResult { Valid, InvalidWordCount, InvalidWords, InvalidSecp256k1Range, InvalidBip39Checksum, NumValidateResults };
 ValidateResult ValidateMnemonic(const tList<tStringItem>& words, Bip39::Dictionary::Language, bool checkSecp256k1Range);
 
+// Returns a printable string of the ValidateResult or nullptr if bad input like NumValidateResults entered.
+const char* GetValidateResultString(ValidateResult);
+
 // Overwrite the entropyBits in memory many times to help make it more secure.
 void ClearEntropy(tbit256& entropyBits);
 

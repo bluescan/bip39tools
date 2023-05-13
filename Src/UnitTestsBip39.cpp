@@ -329,23 +329,20 @@ bool UnitTestsBip39::TestBIP39VectorsGeneration()
 
 bool UnitTestsBip39::TestBIP39VectorsValidation()
 {
-	const char* resultStrings[int(Bip39::ValidateResult::NumValidateResults)] =
-	{
-		"Valid", "InvalidWordCount", "InvalidWords", "InvalidSecp256k1Range", "InvalidBip39Checksum"
-	};
-
 	for (int t = 0; t < NumBIP39MnemonicVectors; t++)
 	{
 		const char* mnemonic					= BIP39MnemonicVectors[t].Mnemonic;
 		Bip39::ValidateResult expectedResult	= BIP39MnemonicVectors[t].Result;
+		const char* expectedResultStr			= Bip39::GetValidateResultString(expectedResult);
 
 		tPrintf("Words [%s]\n", mnemonic);
-		tPrintf("   Expected: [%s]\n", resultStrings[int(expectedResult)]);
+		tPrintf("   Expected: [%s]\n", expectedResultStr);
 
 		tList<tStringItem> words;
 		tStd::tExplode(words, tString(mnemonic), ' ');
-		Bip39::ValidateResult receivedResult = Bip39::ValidateMnemonic(words, Bip39::Dictionary::Language::English, true);
-		tPrintf("   Received: [%s]\n", resultStrings[int(receivedResult)]);
+		Bip39::ValidateResult receivedResult	= Bip39::ValidateMnemonic(words, Bip39::Dictionary::Language::English, true);
+		const char* receivedResultStr			= Bip39::GetValidateResultString(receivedResult);
+		tPrintf("   Received: [%s]\n", receivedResultStr);
 
 		bool pass = (expectedResult == receivedResult);
 		tPrintf("   Result:  %s\n\n", pass ? "Pass" : "Fail");

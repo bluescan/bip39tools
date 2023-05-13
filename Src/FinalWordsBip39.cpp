@@ -360,8 +360,8 @@ void FinalWords::DoFindFinalWords(Bip39::Dictionary::Language language)
 	{
 		tString lastWord = Bip39::Dictionary::GetWord(w, language);
 		words.Append(new tStringItem(lastWord));
-		bool validated = Bip39::ValidateMnemonic(words, language);
-		if (validated)
+		Bip39::ValidateResult validationResult = Bip39::ValidateMnemonic(words, language, true);
+		if (validationResult == Bip39::ValidateResult::Valid)
 		{
 			tPrintf("Valid Last Word %d: %s\n", ++lastWordNum, lastWord.Chars());
 			lastWordsList.Append(new tStringItem(lastWord));

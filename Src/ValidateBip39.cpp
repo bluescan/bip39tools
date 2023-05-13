@@ -181,12 +181,9 @@ bool Validate::CheckMnemonic(Bip39::Dictionary::Language language)
 	QueryUserWords(words, numWords, language);
 	tAssert(words.GetNumItems() == numWords);
 
-	const char* resultStrings[int(Bip39::ValidateResult::NumValidateResults)] =
-	{
-		"Valid", "InvalidWordCount", "InvalidWords", "InvalidSecp256k1Range", "InvalidBip39Checksum"
-	};
-	Bip39::ValidateResult result = Bip39::ValidateMnemonic(words, language, true);
-	tPrintf("Validation result: %s\n", resultStrings[int(result)]);
+	Bip39::ValidateResult result	= Bip39::ValidateMnemonic(words, language, true);
+	const char* resultStr			= Bip39::GetValidateResultString(result);
+	tPrintf("Validation result: %s\n", resultStr);
 
 	bool valid = (result == Bip39::ValidateResult::Valid);
 	tPrintf("The mnemonic phrase is %s\n", valid ? "VALID" : "INVALID");
@@ -215,12 +212,9 @@ bool Validate::CheckMnemonic(tList<tStringItem>& words)
 	for (tStringItem* wrd = words.First(); wrd; wrd = wrd->Next())
 		tPrintf("Word %2d: %s\n", wordNum++, wrd->Chars());
 
-	Bip39::ValidateResult result = Bip39::ValidateMnemonic(words, Bip39::Dictionary::Language::English, true);
-	const char* resultStrings[int(Bip39::ValidateResult::NumValidateResults)] =
-	{
-		"Valid", "InvalidWordCount", "InvalidWords", "InvalidSecp256k1Range", "InvalidBip39Checksum"
-	};
-	tPrintf("Validation result: %s\n", resultStrings[int(result)]);
+	Bip39::ValidateResult result	= Bip39::ValidateMnemonic(words, Bip39::Dictionary::Language::English, true);
+	const char* resultStr			= Bip39::GetValidateResultString(result);
+	tPrintf("Validation result: %s\n", resultStr);
 
 	bool valid = (result == Bip39::ValidateResult::Valid);
 	tPrintf("The mnemonic phrase is %s\n", valid ? "VALID" : "INVALID");

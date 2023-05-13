@@ -364,6 +364,30 @@ Bip39::ValidateResult Bip39::ValidateMnemonic(const tList<tStringItem>& words, B
 }
 
 
+namespace Bip39
+{
+	const char* ValidateResultStringTable[] =
+	{
+		"Valid",
+		"InvalidWordCount",
+		"InvalidWords",
+		"InvalidSecp256k1Range",
+		"InvalidBip39Checksum"
+	};
+	tStaticAssert(int(ValidateResult::NumValidateResults) == tNumElements(ValidateResultStringTable));
+}
+
+
+const char* Bip39::GetValidateResultString(ValidateResult result)
+{
+	int resIdx = int(result);
+	if ((resIdx < 0) || (resIdx >= int(Bip39::ValidateResult::NumValidateResults)))
+		return nullptr;
+	
+	return ValidateResultStringTable[resIdx];
+}
+
+
 void Bip39::ClearEntropy(tbit256& entropyBits)
 {
 	// We're going to overwrite the entropy memory a few times here to protect against hardware snooping
