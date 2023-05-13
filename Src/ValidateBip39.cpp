@@ -228,7 +228,25 @@ int main(int argc, char** argv)
 
 	// The 0 means populate wordParams with all command line params.
 	tCmdLine::tParam wordParams(0);
+	tCmdLine::tOption help("Display usage.", 'h');
 	tCmdLine::tParse(argc, argv);
+
+	if (help)
+	{
+		tCmdLine::tPrintUsage
+		(
+			nullptr,
+			u8"Takes words you enter and checks if you have a valid BIP-0039 mnemonic.\n"
+			"You must enter 12, 15, 18, 21, or 24 words.\n"
+			"\n"
+			"You may enter your current words as parameters in the command line. Only\n"
+			"english words may be entered on the command line. If you do not supply them,\n"
+			"an interactive mode is entered requesting them in your chosen language.\n"
+			"\n"
+			"Only first 4 letters of each word is required regardless of entry mode."
+		);
+		return 0;
+	}
 
 	// If the words were entered on the command line we validate them and skip interactive entry.
 	// For this use-case currently only English is supported.
