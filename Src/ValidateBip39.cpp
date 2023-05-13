@@ -226,7 +226,7 @@ int main(int argc, char** argv)
 {
 	tPrintf("validatebip39 V%d.%d.%d\n", Version::Major, Version::Minor, Version::Revision);
 
-	// The 0 means populate wordParams with all command line parame.
+	// The 0 means populate wordParams with all command line params.
 	tCmdLine::tParam wordParams(0);
 	tCmdLine::tParse(argc, argv);
 

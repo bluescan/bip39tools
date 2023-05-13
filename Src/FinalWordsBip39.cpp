@@ -31,6 +31,7 @@ namespace FinalWords
 {
 	Bip39::Dictionary::Language QueryUserLanguage();
 	void DoFindFinalWords(Bip39::Dictionary::Language);
+	void DoFindFinalWords(tList<tStringItem>& words, Bip39::Dictionary::Language, bool queryCoinAndSave);
 
 	//
 	// Complete Last Word Functions.
@@ -306,7 +307,6 @@ void FinalWords::DoFindFinalWords(Bip39::Dictionary::Language language)
 {
 	tList<tStringItem> words;
 	int numAvailWords = 0;
-
 	#ifdef LAST_WORD_TEST_WORDS
 	words.Append(new tStringItem("abandon"));
 	words.Append(new tStringItem("exile"));
@@ -342,8 +342,19 @@ void FinalWords::DoFindFinalWords(Bip39::Dictionary::Language language)
 	numAvailWords = QueryUserNumAvailableWords();
 	QueryUserAvailableWords(words, numAvailWords, language);
 	tAssert(words.GetNumItems() == numAvailWords);
-
 	#endif
+
+	DoFindFinalWords(words, language, true);
+}
+
+
+void FinalWords::DoFindFinalWords(tList<tStringItem>& words, Bip39::Dictionary::Language language, bool queryCoinAndSave)
+{
+	int numAvailWords = words.GetNumItems();
+
+	int wrdNum = 1;
+	for (tStringItem* wrd = words.First(); wrd; wrd = wrd->Next())
+		tPrintf("Word %d: %s\n", wrdNum++, wrd->Chr());
 
 	int lastWordNum = 0;
 	tList<tStringItem> lastWordsList;
@@ -375,6 +386,8 @@ void FinalWords::DoFindFinalWords(Bip39::Dictionary::Language language)
 	// This method is faster. Create only the possible entropy bit sets and generate the CS/words.
 	tbit512 rawBits;
 	int numRawBits;
+
+	// GetRawBits requires full words.
 	bool ok = Bip39::GetRawBits(rawBits, numRawBits, words, language);
 
 	// Since we retry on invalid words, this should always succeed.
@@ -421,18 +434,72 @@ void FinalWords::DoFindFinalWords(Bip39::Dictionary::Language language)
 
 	tPrintf("Expected %d Last Words. Got %d Last Words.\n", numLastWords, lastWordNum);
 
-	// Ask user if they want to use a coin to randomly whittle the list down to a single word.
-	tString chosenWord = QueryUserCoinChoose(lastWordsList);
+	if (queryCoinAndSave)
+	{
+		// Ask user if they want to use a coin to randomly whittle the list down to a single word.
+		tString chosenWord = QueryUserCoinChoose(lastWordsList);
 
-	bool savedFile = QueryUserSave(words, lastWordsList, chosenWord, language);
-	if (savedFile)
-		tPrintf("You saved results to a file. If you go again and save it will be overwritten.\n");
+		bool savedFile = QueryUserSave(words, lastWordsList, chosenWord, language);
+		if (savedFile)
+			tPrintf("You saved results to a file. If you go again and save it will be overwritten.\n");
+	}
 }
 
 
 int main(int argc, char** argv)
 {
 	tPrintf("finalwordsbip39 V%d.%d.%d\n", Version::Major, Version::Minor, Version::Revision);
+
+	// The 0 means wordParams gets populated with all params.
+	tCmdLine::tParam wordParams(0);
+	tCmdLine::tOption help("Display usage.", 'h');
+	tCmdLine::tParse(argc, argv);
+
+	if (help)
+	{
+		tCmdLine::tPrintUsage
+		(
+			nullptr,
+			u8"Takes words you enter and computes all possible final words that result in a\n"
+			"valid checksum. You must enter 11, 14, 17, 20, or 23 words.\n"
+			"\n"
+			"You may enter your current words as parameters in the command line. Only\n"
+			"english words may be entered on the command line. If you do not supply them,\n"
+			"an interactive mode is entered requesting them in your chosen language.\n"
+			"\n"
+			"Only first 4 letters of each word is required regardless of entry mode."
+		);
+		return 0;
+	}
+
+	// If the words were entered on the command line we validate them and skip interactive entry.
+	// For this use-case currently only English is supported.
+	int numWordParams = wordParams.Values.GetNumItems();
+	if (numWordParams > 0)
+	{
+		if (Bip39::IsValidNumWords(numWordParams+1))
+		{
+			tList<tStringItem> words;
+			for (tStringItem* word = wordParams.Values.First(); word; word = word->Next())
+			{
+				tString fullWord = Bip39::Dictionary::GetFullWord(*word, Bip39::Dictionary::Language::English);
+				if (fullWord.IsEmpty())
+				{
+					tPrintf("Word [%s] is not a valid English BIP39 word.\n", word->Chr());
+					return 1;
+				}
+				words.Append(new tStringItem(fullWord));
+			}
+
+			FinalWords::DoFindFinalWords(words, Bip39::Dictionary::Language::English, false);
+			return 0;
+		}
+		else
+		{
+			tPrintf("You supplied %d words. FinalWordsBip39 requires 11, 14, 17, 20, or 23 words.\n", numWordParams);
+			return 2;
+		}
+	}
 
 ChooseLanguage:
 	Bip39::Dictionary::Language language = FinalWords::QueryUserLanguage();
