@@ -2,7 +2,7 @@
 //
 // Validate the Bip39 and SHA functions with unit tests and test vectors from official sources where possible.
 //
-// Copyright (c) 2021 Tristan Grimmer.
+// Copyright (c) 2021, 2023 Tristan Grimmer.
 // Permission to use, copy, modify, and/or distribute this software for any purpose with or without fee is hereby
 // granted, provided that the above copyright notice and this permission notice appear in all copies.
 //
@@ -114,35 +114,75 @@ namespace UnitTestsBip39
 	//
 	// BIP39 test vectors.
 	//
-	struct BIP39Vector { const char* Entropy; const char* Mnemonic; };
+	struct BIP39Vector { const char* Entropy; const char* Mnemonic; bool InRange; };
 	BIP39Vector BIP39Vectors[] =
 	{
-		{ "00000000000000000000000000000000",									"abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about" },
-		{ "7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f",									"legal winner thank year wave sausage worth useful legal winner thank yellow" },
-		{ "80808080808080808080808080808080",									"letter advice cage absurd amount doctor acoustic avoid letter advice cage above" },
-		{ "ffffffffffffffffffffffffffffffff",									"zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo wrong" },
-		{ "000000000000000000000000000000000000000000000000",					"abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon agent" },
-		{ "7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f",					"legal winner thank year wave sausage worth useful legal winner thank year wave sausage worth useful legal will" },
-		{ "808080808080808080808080808080808080808080808080",					"letter advice cage absurd amount doctor acoustic avoid letter advice cage absurd amount doctor acoustic avoid letter always" },
-		{ "ffffffffffffffffffffffffffffffffffffffffffffffff",					"zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo when" },
-		{ "0000000000000000000000000000000000000000000000000000000000000000",	"abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon art" },
-		{ "7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f",	"legal winner thank year wave sausage worth useful legal winner thank year wave sausage worth useful legal winner thank year wave sausage worth title" },
-		{ "8080808080808080808080808080808080808080808080808080808080808080",	"letter advice cage absurd amount doctor acoustic avoid letter advice cage absurd amount doctor acoustic avoid letter advice cage absurd amount doctor acoustic bless" },
-		{ "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",	"zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo vote" },
-		{ "9e885d952ad362caeb4efe34a8e91bd2",									"ozone drill grab fiber curtain grace pudding thank cruise elder eight picnic" },
-		{ "6610b25967cdcca9d59875f5cb50b0ea75433311869e930b",					"gravity machine north sort system female filter attitude volume fold club stay feature office ecology stable narrow fog" },
-		{ "68a79eaca2324873eacc50cb9c6eca8cc68ea5d936f98787c60c7ebc74e6ce7c",	"hamster diagram private dutch cause delay private meat slide toddler razor book happy fancy gospel tennis maple dilemma loan word shrug inflict delay length" },
-		{ "c0ba5a8e914111210f2bd131f3d5e08d",									"scheme spot photo card baby mountain device kick cradle pact join borrow" },
-		{ "6d9be1ee6ebd27a258115aad99b7317b9c8d28b6d76431c3",					"horn tenant knee talent sponsor spell gate clip pulse soap slush warm silver nephew swap uncle crack brave" },
-		{ "9f6a2878b2520799a44ef18bc7df394e7061a224d2c33cd015b157d746869863",	"panda eyebrow bullet gorilla call smoke muffin taste mesh discover soft ostrich alcohol speed nation flash devote level hobby quick inner drive ghost inside" },
-		{ "23db8160a31d3e0dca3688ed941adbf3",									"cat swing flag economy stadium alone churn speed unique patch report train" },
-		{ "8197a4a47f0425faeaa69deebc05ca29c0a5b5cc76ceacc0",					"light rule cinnamon wrap drastic word pride squirrel upgrade then income fatal apart sustain crack supply proud access" },
-		{ "066dca1a2bb7e8a1db2832148ce9933eea0f3ac9548d793112d9a95c9407efad",	"all hour make first leader extend hole alien behind guard gospel lava path output census museum junior mass reopen famous sing advance salt reform" },
-		{ "f30f8c1da665478f49b001d94c5fc452",									"vessel ladder alter error federal sibling chat ability sun glass valve picture" },
-		{ "c10ec20dc3cd9f652c7fac2f1230f7a3c828389a14392f05",					"scissors invite lock maple supreme raw rapid void congress muscle digital elegant little brisk hair mango congress clump" },
-		{ "f585c11aec520db57dd353c69554b21a89b20fb0650966fa0a9d6f74fd989d8f",	"void come effort suffer camp survey warrior heavy shoot primary clutch crush open amazing screen patrol group space point ten exist slush involve unfold" }
+		{ "00000000000000000000000000000000",									"abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about", true },
+		{ "7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f",									"legal winner thank year wave sausage worth useful legal winner thank yellow", true },
+		{ "80808080808080808080808080808080",									"letter advice cage absurd amount doctor acoustic avoid letter advice cage above", true },
+		{ "ffffffffffffffffffffffffffffffff",									"zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo wrong", true },
+		{ "000000000000000000000000000000000000000000000000",					"abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon agent", true },
+		{ "7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f",					"legal winner thank year wave sausage worth useful legal winner thank year wave sausage worth useful legal will", true },
+		{ "808080808080808080808080808080808080808080808080",					"letter advice cage absurd amount doctor acoustic avoid letter advice cage absurd amount doctor acoustic avoid letter always", true },
+		{ "ffffffffffffffffffffffffffffffffffffffffffffffff",					"zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo when", true },
+		{ "0000000000000000000000000000000000000000000000000000000000000000",	"abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon art", true },
+		{ "7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f",	"legal winner thank year wave sausage worth useful legal winner thank year wave sausage worth useful legal winner thank year wave sausage worth title", true },
+		{ "8080808080808080808080808080808080808080808080808080808080808080",	"letter advice cage absurd amount doctor acoustic avoid letter advice cage absurd amount doctor acoustic avoid letter advice cage absurd amount doctor acoustic bless", true },
+		{ "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",	"zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo vote", false },
+
+		// These are for testing secp256k1 range detection.
+		{ "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364140",	"zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo word priority hover one trouble parent target virus rug snack brass agree alpha", true },
+		{ "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141",	"zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo word priority hover one trouble parent target virus rug snack brass agree cheap", false },
+
+		{ "9e885d952ad362caeb4efe34a8e91bd2",									"ozone drill grab fiber curtain grace pudding thank cruise elder eight picnic", true },
+		{ "6610b25967cdcca9d59875f5cb50b0ea75433311869e930b",					"gravity machine north sort system female filter attitude volume fold club stay feature office ecology stable narrow fog", true },
+		{ "68a79eaca2324873eacc50cb9c6eca8cc68ea5d936f98787c60c7ebc74e6ce7c",	"hamster diagram private dutch cause delay private meat slide toddler razor book happy fancy gospel tennis maple dilemma loan word shrug inflict delay length", true },
+		{ "c0ba5a8e914111210f2bd131f3d5e08d",									"scheme spot photo card baby mountain device kick cradle pact join borrow", true },
+		{ "6d9be1ee6ebd27a258115aad99b7317b9c8d28b6d76431c3",					"horn tenant knee talent sponsor spell gate clip pulse soap slush warm silver nephew swap uncle crack brave", true },
+		{ "9f6a2878b2520799a44ef18bc7df394e7061a224d2c33cd015b157d746869863",	"panda eyebrow bullet gorilla call smoke muffin taste mesh discover soft ostrich alcohol speed nation flash devote level hobby quick inner drive ghost inside", true },
+		{ "23db8160a31d3e0dca3688ed941adbf3",									"cat swing flag economy stadium alone churn speed unique patch report train", true },
+		{ "8197a4a47f0425faeaa69deebc05ca29c0a5b5cc76ceacc0",					"light rule cinnamon wrap drastic word pride squirrel upgrade then income fatal apart sustain crack supply proud access", true },
+		{ "066dca1a2bb7e8a1db2832148ce9933eea0f3ac9548d793112d9a95c9407efad",	"all hour make first leader extend hole alien behind guard gospel lava path output census museum junior mass reopen famous sing advance salt reform", true },
+		{ "f30f8c1da665478f49b001d94c5fc452",									"vessel ladder alter error federal sibling chat ability sun glass valve picture", true },
+		{ "c10ec20dc3cd9f652c7fac2f1230f7a3c828389a14392f05",					"scissors invite lock maple supreme raw rapid void congress muscle digital elegant little brisk hair mango congress clump", true },
+		{ "f585c11aec520db57dd353c69554b21a89b20fb0650966fa0a9d6f74fd989d8f",	"void come effort suffer camp survey warrior heavy shoot primary clutch crush open amazing screen patrol group space point ten exist slush involve unfold", true },
 	};
 	constexpr int NumBIP39Vectors = sizeof(BIP39Vectors)/sizeof(*BIP39Vectors);
+
+	//
+	// BIP39 mnemonic validation tests.
+	//
+	struct BIP39MnemonicVector { const char* Mnemonic; Bip39::ValidateResult Result; };
+	BIP39MnemonicVector BIP39MnemonicVectors[] =
+	{
+		{
+			"void come effort suffer camp survey warrior heavy shoot primary clutch crush open amazing screen patrol group space point ten exist slush involve unfold",
+			Bip39::ValidateResult::Valid
+		},
+
+		{
+			"come effort suffer camp survey warrior heavy shoot primary clutch crush open amazing screen patrol group space point ten exist slush involve unfold",
+			Bip39::ValidateResult::InvalidWordCount
+		},
+
+		{
+			"zzzz come effort suffer camp survey warrior heavy shoot primary clutch crush open amazing screen patrol group space point ten exist slush involve unfold",
+			Bip39::ValidateResult::InvalidWords
+		},
+
+		// Invalid range.
+		{
+			"zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo word priority hover one trouble parent target virus rug snack brass agree cheap",
+			Bip39::ValidateResult::InvalidSecp256k1Range
+		},
+
+		// Invalid chaecksum.
+		{
+			"ozone drill grab fiber curtain grace pudding thank cruise elder eight piano",
+			Bip39::ValidateResult::InvalidBip39Checksum
+		}
+	};
+	constexpr int NumBIP39MnemonicVectors = sizeof(BIP39MnemonicVectors)/sizeof(*BIP39MnemonicVectors);
 
 	bool WordsMatch(const tList<tStringItem>& a, const tList<tStringItem>& b);
 	void PrintWords(const tList<tStringItem>&);
@@ -150,7 +190,8 @@ namespace UnitTestsBip39
 	bool TestSHA256StringVectors();
 	bool TestSHA256BinaryVectors();
 	bool TestSHA256RepeatedByteVectors();
-	bool TestBIP39Vectors();
+	bool TestBIP39VectorsGeneration();
+	bool TestBIP39VectorsValidation();
 	bool TestBIP39Dictionary();
 }
 
@@ -239,17 +280,20 @@ bool UnitTestsBip39::TestSHA256RepeatedByteVectors()
 }
 
 
-bool UnitTestsBip39::TestBIP39Vectors()
+bool UnitTestsBip39::TestBIP39VectorsGeneration()
 {
 	tbit256 entropyBits;
 	for (int t = 0; t < NumBIP39Vectors; t++)
 	{
 		const char* entropy		= BIP39Vectors[t].Entropy;
 		const char* mnemonic	= BIP39Vectors[t].Mnemonic;
-		tPrintf("Entropy [%064s]\n", entropy);
-
+		bool entropyInRange		= BIP39Vectors[t].InRange;
 		entropyBits.Set(entropy);
-		tPrintf("   Uint [%064|256x]\n", entropyBits);
+
+		bool inRange = Bip39::IsValidSecp256k1Range(entropyBits);
+
+		tPrintf("Entropy [%064s]   Secp256k1 Range [%B]\n", entropy, entropyInRange);
+		tPrintf("   Uint [%064|256x]   Secp256k1 Range [%B]\n", entropyBits, inRange);
 
 		int numBits = tStd::tStrlen(entropy)*4;
 		int numWords = Bip39::GetNumWords(numBits);
@@ -270,7 +314,7 @@ bool UnitTestsBip39::TestBIP39Vectors()
 		tPrintf("   GenWords [%s]\n", generatedWords);
 		tPrintf("   Mnemonic [%s]\n", mnemonic);
 
-		bool pass = (tStd::tStrcmp(generatedWords, mnemonic) == 0);
+		bool pass = (tStd::tStrcmp(generatedWords, mnemonic) == 0) && (entropyInRange == inRange);
 		tPrintf("   Result:  %s\n\n", pass ? "Pass" : "Fail");
 		if (!pass)
 		{
@@ -279,6 +323,35 @@ bool UnitTestsBip39::TestBIP39Vectors()
 		}
 	}
 	Bip39::ClearEntropy(entropyBits);
+	return true;
+}
+
+
+bool UnitTestsBip39::TestBIP39VectorsValidation()
+{
+	const char* resultStrings[int(Bip39::ValidateResult::NumValidateResults)] =
+	{
+		"Valid", "InvalidWordCount", "InvalidWords", "InvalidSecp256k1Range", "InvalidBip39Checksum"
+	};
+
+	for (int t = 0; t < NumBIP39MnemonicVectors; t++)
+	{
+		const char* mnemonic					= BIP39MnemonicVectors[t].Mnemonic;
+		Bip39::ValidateResult expectedResult	= BIP39MnemonicVectors[t].Result;
+
+		tPrintf("Words [%s]\n", mnemonic);
+		tPrintf("   Expected: [%s]\n", resultStrings[int(expectedResult)]);
+
+		tList<tStringItem> words;
+		tStd::tExplode(words, tString(mnemonic), ' ');
+		Bip39::ValidateResult receivedResult = Bip39::ValidateMnemonic(words, Bip39::Dictionary::Language::English, true);
+		tPrintf("   Received: [%s]\n", resultStrings[int(receivedResult)]);
+
+		bool pass = (expectedResult == receivedResult);
+		tPrintf("   Result:  %s\n\n", pass ? "Pass" : "Fail");
+		if (!pass)
+			return false;
+	}
 	return true;
 }
 
@@ -337,6 +410,11 @@ bool UnitTestsBip39::TestBIP39Dictionary()
 	if (fullWord != "above")
 		return false;
 
+	fullWord = Bip39::Dictionary::GetFullWord("ZZZZTYPO", Bip39::Dictionary::Language::English);
+	tPrintf("Prefix:ZZZZTYPO FullWord:%s Expect:EMPTY\n", fullWord.Chars());
+	if (!fullWord.IsEmpty())
+		return false;
+
 	return true;
 }
 
@@ -357,8 +435,12 @@ bool UnitTestsBip39::UnitTests()
 	if (!TestSHA256RepeatedByteVectors())
 		return false;
 
-	tPrintf("Testing BIP39 Vectors\n");
-	if (!TestBIP39Vectors())
+	tPrintf("Testing BIP39 Vectors Generation\n");
+	if (!TestBIP39VectorsGeneration())
+		return false;
+
+	tPrintf("Testing BIP39 Vectors Validation\n");
+	if (!TestBIP39VectorsValidation())
 		return false;
 
 	tPrintf("Testing BIP39 Dictionary\n");

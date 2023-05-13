@@ -2,7 +2,7 @@
 //
 // Bip39 interface.
 //
-// Copyright (c) 2021 Tristan Grimmer.
+// Copyright (c) 2021, 2023 Tristan Grimmer.
 // Permission to use, copy, modify, and/or distribute this software for any purpose with or without fee is hereby
 // granted, provided that the above copyright notice and this permission notice appear in all copies.
 //
@@ -312,10 +312,25 @@ bool Bip39::IsValidNumWords(int numWords)
 }
 
 
-bool Bip39::ValidateMnemonic(const tList<tStringItem>& words, Bip39::Dictionary::Language language)
+bool Bip39::IsValidSecp256k1Range(const tbit256& entropy)
+{
+	tFixIntU<256> entropyAsUInt(entropy);
+
+	// The entropy needs to be less than the order of the Secp256k1 curve. The order of
+	// secp256k1 is FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141.
+	tFixIntU<256> secp256k1CurveOrder;
+	secp256k1CurveOrder.Set("FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141", 16);
+	if (entropyAsUInt >= secp256k1CurveOrder)
+		return false;
+
+	return true;
+}
+
+
+Bip39::ValidateResult Bip39::ValidateMnemonic(const tList<tStringItem>& words, Bip39::Dictionary::Language language, bool checkSecp256k1Range)
 {
 	if (!IsValidNumWords(words.GetNumItems()))
-		return false;
+		return ValidateResult::InvalidWordCount;
 		
 	// We get the entropy. Generate a valid full set of bits (ENT + CS), and compare agains the full bits
 	// directly from the supplied words.
@@ -324,22 +339,28 @@ bool Bip39::ValidateMnemonic(const tList<tStringItem>& words, Bip39::Dictionary:
 
 	bool ok = GetEntropyFromWords(bits, numEntropyBits, words, language);
 	if (!ok)
-		return false;
+		return ValidateResult::InvalidWords;
+
+	if (checkSecp256k1Range && !IsValidSecp256k1Range(bits))
+		return ValidateResult::InvalidSecp256k1Range;
 
 	// Generate the valid ENT+CS.
 	tbit512 validENTCS;
 	int numValidBits;
 	ok = ComputeFullBitsFromEntropy(validENTCS, numValidBits, bits, numEntropyBits);
 	if (!ok)
-		return false;
+		return ValidateResult::InvalidWords;
 
 	tbit512 rawENTCS;
 	int numRawBits;
 	ok = GetFullBits(rawENTCS, numRawBits, words, language);
 	if (!ok || (numValidBits != numRawBits))
-		return false;
+		return ValidateResult::InvalidWords;
 
-	return (validENTCS == rawENTCS);
+	if (validENTCS != rawENTCS)
+		return ValidateResult::InvalidBip39Checksum;
+
+	return ValidateResult::Valid;
 }
 
 

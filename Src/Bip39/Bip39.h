@@ -2,7 +2,7 @@
 //
 // Bip39 interface.
 //
-// Copyright (c) 2021 Tristan Grimmer.
+// Copyright (c) 2021, 2023 Tristan Grimmer.
 // Permission to use, copy, modify, and/or distribute this software for any purpose with or without fee is hereby
 // granted, provided that the above copyright notice and this permission notice appear in all copies.
 //
@@ -106,11 +106,17 @@ bool GetEntropyFromWords
 	Bip39::Dictionary::Language
 );
 
+// Depending on what the entropy will be used for, it may still be out of range. This function
+// checks if it is good for Secp256k1. It is _extremely_ unlikely it will be out of range as the
+// period of the curve is really large... not quite 2^256, but not relatively that far off.
+bool IsValidSecp256k1Range(const tbit256& entropy);
+
 // Returns true if the number of words is 12, 15, 18, 21, or 24.
 bool IsValidNumWords(int numWords);
 
-// Returns true if the CS is valid for the supplied word list.
-bool ValidateMnemonic(const tList<tStringItem>& words, Bip39::Dictionary::Language);
+// Returns ValidateResult::OK if the CS is valid for the supplied word list.
+enum class ValidateResult { Valid, InvalidWordCount, InvalidWords, InvalidSecp256k1Range, InvalidBip39Checksum, NumValidateResults };
+ValidateResult ValidateMnemonic(const tList<tStringItem>& words, Bip39::Dictionary::Language, bool checkSecp256k1Range);
 
 // Overwrite the entropyBits in memory many times to help make it more secure.
 void ClearEntropy(tbit256& entropyBits);

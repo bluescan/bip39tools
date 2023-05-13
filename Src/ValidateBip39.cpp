@@ -3,7 +3,7 @@
 // Test a supplied word list to see if it's valid and the checksum is correct.
 // The language is determined by inspection.
 //
-// Copyright (c) 2021 Tristan Grimmer.
+// Copyright (c) 2021, 2023 Tristan Grimmer.
 // Permission to use, copy, modify, and/or distribute this software for any purpose with or without fee is hereby
 // granted, provided that the above copyright notice and this permission notice appear in all copies.
 //
@@ -181,7 +181,14 @@ bool Validate::CheckMnemonic(Bip39::Dictionary::Language language)
 	QueryUserWords(words, numWords, language);
 	tAssert(words.GetNumItems() == numWords);
 
-	bool valid = Bip39::ValidateMnemonic(words, language);
+	const char* resultStrings[int(Bip39::ValidateResult::NumValidateResults)] =
+	{
+		"Valid", "InvalidWordCount", "InvalidWords", "InvalidSecp256k1Range", "InvalidBip39Checksum"
+	};
+	Bip39::ValidateResult result = Bip39::ValidateMnemonic(words, language, true);
+	tPrintf("Validation result: %s\n", resultStrings[int(result)]);
+
+	bool valid = (result == Bip39::ValidateResult::Valid);
 	tPrintf("The mnemonic phrase is %s\n", valid ? "VALID" : "INVALID");
 	return valid;
 }
@@ -208,7 +215,14 @@ bool Validate::CheckMnemonic(tList<tStringItem>& words)
 	for (tStringItem* wrd = words.First(); wrd; wrd = wrd->Next())
 		tPrintf("Word %2d: %s\n", wordNum++, wrd->Chars());
 
-	bool valid = Bip39::ValidateMnemonic(words, Bip39::Dictionary::Language::English);
+	Bip39::ValidateResult result = Bip39::ValidateMnemonic(words, Bip39::Dictionary::Language::English, true);
+	const char* resultStrings[int(Bip39::ValidateResult::NumValidateResults)] =
+	{
+		"Valid", "InvalidWordCount", "InvalidWords", "InvalidSecp256k1Range", "InvalidBip39Checksum"
+	};
+	tPrintf("Validation result: %s\n", resultStrings[int(result)]);
+
+	bool valid = (result == Bip39::ValidateResult::Valid);
 	tPrintf("The mnemonic phrase is %s\n", valid ? "VALID" : "INVALID");
 	return valid;
 }

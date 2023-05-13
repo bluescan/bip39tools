@@ -3,7 +3,7 @@
 // Tool to generate a list of possible last words when you supply all previous words.
 // Any of the words may be chosen and results in a valid (correct checksum) BIP-0039 mnemonic.
 //
-// Copyright (c) 2021 Tristan Grimmer.
+// Copyright (c) 2021, 2023 Tristan Grimmer.
 // Permission to use, copy, modify, and/or distribute this software for any purpose with or without fee is hereby
 // granted, provided that the above copyright notice and this permission notice appear in all copies.
 //
@@ -396,8 +396,8 @@ void FinalWords::DoFindFinalWords(Bip39::Dictionary::Language language)
 		Bip39::ClearEntropy(ent);
 		if (ok)
 		{
-			bool valid = Bip39::ValidateMnemonic(allwords, language);
-			if (!valid)
+			Bip39::ValidateResult result = Bip39::ValidateMnemonic(allwords, language, true);
+			if (result != Bip39::ValidateResult::Valid)
 			{
 				tPrintf("Valididate word list failed. Skipping word.\n");
 				continue;

@@ -2,7 +2,7 @@
 //
 // Generate a valid BIP-39 mnemonic phrase with dice.
 //
-// Copyright (c) 2021 Tristan Grimmer.
+// Copyright (c) 2021, 2023 Tristan Grimmer.
 // Permission to use, copy, modify, and/or distribute this software for any purpose with or without fee is hereby
 // granted, provided that the above copyright notice and this permission notice appear in all copies.
 //
@@ -407,6 +407,20 @@ void Dice2Bip::DoCreateMnemonic(Bip39::Dictionary::Language language)
 	}
 
 	tAssert(numBitsGenerated == numBitsTotal);
+
+	// Just to be fully correct, we check that the entropy is valid for Secp256k1.
+	// It is _extremely_ unlikely it will be out of range as the period of the curve
+	// is really large... not quite 2^256, but not relatively that far off.
+	if (!Bip39::IsValidSecp256k1Range(entropy))
+	{
+		tPrintf("The generated entropy is larger than the Secp256k1 curve period.\n");
+		tPrintf("This is a once in a bazillion-quillion failure.\n");
+		tPrintf("You will need to start again.\n");
+		tPrintf(ChVerb, "Erasing Memory\n");
+		Bip39::ClearEntropy(entropy);
+		return;
+	}
+
 	tList<tStringItem> words;
 	Bip39::ComputeWordsFromEntropy(words, entropy, numBitsTotal, language);
 
