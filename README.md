@@ -157,7 +157,7 @@ Most of the above hardware can be bought as a kit from somewhere like CanaKit. T
 8. sudo apt-get install git
 9. sudo apt-get install cmake
 10. I suggest only grabbing tagged branches that have been released in github. You can check for a later version under GitHub's releases link.
-11. Git clone --depth 1 --branch v0.9.5 https://github.com/bluescan/bip39tools
+11. Git clone --depth 1 --branch v0.9.14 https://github.com/bluescan/bip39tools
 12. If you just want the latest, use: git clone https://github.com/bluescan/bip39tools
 13. cd bip39tools
 14. mkdir build
