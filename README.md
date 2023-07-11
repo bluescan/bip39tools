@@ -202,13 +202,9 @@ The API is completely stateless. Call any function in any order and it will work
 
 The ***Bip39::Dictionary*** namespace supports all 10 current lanugages. It has functions for listing candidate words given
 a partial prefix of the full word, extracting the 11 bits of a word, determining the full unique word from a prefix,
-getting the full word from the 11 entropy bits, etc.
-
-See: ***Src/Bip39/Dictionary/Dictionary.h***
+getting the full word from the 11 entropy bits, etc. See: ***Src/Bip39/Dictionary/Dictionary.h***
 
 
 The ***Bip39*** namespace has everything else needed. It supports all BIP-0039 phrase sizes, can extract the entropy bits,
 or the ENT+CS bits, create the full ENT+CS bits from supplied entropy (by performing the SHA hash), validate a
-seed phrase, and can deal with phrase input and output in all supported lanugages.
-
-See: ***Src/Bip39/Bip39.h***
+seed phrase, and can deal with phrase input and output in all supported lanugages. See: ***Src/Bip39/Bip39.h***
