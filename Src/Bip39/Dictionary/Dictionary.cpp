@@ -117,7 +117,7 @@ tString Dictionary::GetFullWord(const tString& prefix, Language lang)
 
 		// By whittling down the prefix, it allows typos after the initial uniquely
 		// specified characters. For example, "abanzzz" still works.
-		prefixLower.ExtractRightN(1);
+		prefixLower.ExtractRight(1);
 	}
 
 	return tString();
@@ -187,7 +187,7 @@ void Dictionary::DevGenerateWordListHeaders()
 		int num = 0;
 		do
 		{
-			tString word = words.ExtractLeftC('_');
+			tString word = words.ExtractLeft('_');
 			tfPrintf(file, "\t\"%s\"", word.Chars());
 			if (num == 2047)
 				tfPrintf(file, "\n");
