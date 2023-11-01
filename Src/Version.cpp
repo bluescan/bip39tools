@@ -37,7 +37,7 @@ Version::Parser::Parser(const char* verStr)
 	if (Parsed)
 		return;
 	tString vstr(verStr);
-	vstr.ExtractLeft('_');
+	vstr.ExtractLeftC('_');
 	tList<tStringItem> components;
 	tStd::tExplode(components, vstr, '.');
 
