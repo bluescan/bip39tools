@@ -447,13 +447,13 @@ int main(int argc, char** argv)
 	tMath::tRandom::DefaultGenerator.SetSeed( uint64(tSystem::tGetHardwareTimerCount()) );
 
 	tCmdLine::tParse(argc, argv);
-	tSystem::tChannel channels = tSystem::tChannel_Systems | Dice2Bip::ChNorm;
+	tSystem::tChannel channels = tSystem::tChannel_Default | Dice2Bip::ChNorm;
 	if (VerboseOutput)
-		channels = tSystem::tChannel_Systems | Dice2Bip::ChVerb;
+		channels = tSystem::tChannel_Default | Dice2Bip::ChVerb;
 	else if (NormalOutput)
-		channels = tSystem::tChannel_Systems | Dice2Bip::ChNorm;
+		channels = tSystem::tChannel_Default | Dice2Bip::ChNorm;
 	else if (ConciseOutput)
-		channels = tSystem::tChannel_Systems | Dice2Bip::ChConc;
+		channels = tSystem::tChannel_Default | Dice2Bip::ChConc;
 	tSystem::tSetChannels(channels);
 
 	if (ConciseOutput)

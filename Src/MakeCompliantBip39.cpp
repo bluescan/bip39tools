@@ -277,7 +277,7 @@ void Comply::ComplyMnemonic(tList<tStringItem>& words, bool clearCS)
 int main(int argc, char** argv)
 {
 	tPrintf("makecompliantbip39 V%d.%d.%d. Use -h for help.\n", Version::Major, Version::Minor, Version::Revision);
-	tSystem::tSetChannels(tSystem::tChannel_Systems | tSystem::tChannel_Verbosity1);
+	tSystem::tSetChannels(tSystem::tChannel_Default | tSystem::tChannel_Verbosity1);
 
 	// The 0 means wordParams gets populated with all params.
 	tCmdLine::tParam wordParams(0);

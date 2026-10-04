@@ -450,7 +450,7 @@ bool UnitTestsBip39::UnitTests()
 
 int main(int argc, char** argv)
 {
-	tSystem::tSetChannels(tSystem::tChannel_Systems);
+	tSystem::tSetChannels(tSystem::tChannel_Default);
 	tPrintf("unittestsbip39 V%d.%d.%d\n", Version::Major, Version::Minor, Version::Revision);
 
 	#ifdef DEV_GEN_WORDLIST
